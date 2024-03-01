@@ -5,6 +5,7 @@ import { connectedReduxRedirect } from "redux-auth-wrapper/history3/redirect";
 import { t } from "ttag";
 
 import AdminApp from "metabase/admin/app/components/AdminApp";
+import { CacheApp } from "metabase/admin/caching/components/CacheApp";
 import DatabaseEditApp from "metabase/admin/databases/containers/DatabaseEditApp";
 import DatabaseListApp from "metabase/admin/databases/containers/DatabaseListApp";
 import DataModelApp from "metabase/admin/datamodel/containers/DataModelApp";
@@ -78,7 +79,6 @@ const getRoutes = (store, CanAccessSettings, IsAdmin) => (
   >
     <Route title={t`Admin`} component={AdminApp}>
       <IndexRoute component={RedirectToAllowedSettings} />
-
       <Route
         path="databases"
         title={t`Databases`}
@@ -88,7 +88,6 @@ const getRoutes = (store, CanAccessSettings, IsAdmin) => (
         <Route path="create" component={DatabaseEditApp} />
         <Route path=":databaseId" component={DatabaseEditApp} />
       </Route>
-
       <Route path="datamodel" component={createAdminRouteGuard("data-model")}>
         <Route title={t`Table Metadata`} component={DataModelApp}>
           {getMetadataRoutes()}
@@ -101,7 +100,6 @@ const getRoutes = (store, CanAccessSettings, IsAdmin) => (
           <Route path=":entity/:id/revisions" component={RevisionHistoryApp} />
         </Route>
       </Route>
-
       {/* PEOPLE */}
       <Route path="people" component={createAdminRouteGuard("people")}>
         <Route title={t`People`} component={AdminPeopleApp}>
@@ -128,7 +126,6 @@ const getRoutes = (store, CanAccessSettings, IsAdmin) => (
           </Route>
         </Route>
       </Route>
-
       {/* Troubleshooting */}
       <Route
         path="troubleshooting"
@@ -150,7 +147,6 @@ const getRoutes = (store, CanAccessSettings, IsAdmin) => (
           <Route path="logs" component={Logs} />
         </Route>
       </Route>
-
       {/* SETTINGS */}
       <Route path="settings" component={createAdminRouteGuard("settings")}>
         <IndexRoute component={createAdminRedirect("setup", "general")} />
@@ -158,12 +154,20 @@ const getRoutes = (store, CanAccessSettings, IsAdmin) => (
           <Route path="*" component={SettingsEditor} />
         </Route>
       </Route>
-
       {/* PERMISSIONS */}
       <Route path="permissions" component={IsAdmin}>
         {getAdminPermissionsRoutes(store)}
       </Route>
-
+      {/* TODO: Make this an enterprise-only plugin */}
+      <Route path="caching" component={createAdminRouteGuard("caching")}>
+        <IndexRoute title={t`Caching`} path="" component={CacheApp}>
+          {/*
+              perhaps eventually something like this will be useful:
+          <IndexRedirect to={PLUGIN_ADMIN_CACHING.INDEX_ROUTE} />
+          {PLUGIN_ADMIN_CACHING.EXTRA_ROUTES}
+          */}
+        </IndexRoute>
+      </Route>
       <Route
         path="tools"
         component={UserCanAccessTools(createAdminRouteGuard("tools"))}
@@ -180,7 +184,6 @@ const getRoutes = (store, CanAccessSettings, IsAdmin) => (
           {PLUGIN_ADMIN_TOOLS.EXTRA_ROUTES}
         </Route>
       </Route>
-
       {/* PLUGINS */}
       <Fragment>
         {PLUGIN_ADMIN_ROUTES.map(getRoutes => getRoutes(store))}
