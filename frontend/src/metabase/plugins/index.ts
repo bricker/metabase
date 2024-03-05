@@ -259,6 +259,9 @@ export const PLUGIN_CACHING = {
   DatabaseCacheTimeField: PluginPlaceholder,
   isEnabled: () => false,
   hasQuestionCacheSection: (_question: Question) => false,
+  canConfigureDatabase: () => false,
+  showAd: true,
+  explanation: t`Cache the results of queries to have them display instantly.`,
 };
 
 export const PLUGIN_REDUCERS: {
