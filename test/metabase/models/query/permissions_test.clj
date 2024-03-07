@@ -103,7 +103,8 @@
    :native   {:query query}})
 
 (deftest native-query-perms-test
-  (is (= {:perms/native-query-editing :yes}
+  (is (= {:perms/create-queries :query-builder-and-native
+          :perms/view-data :unrestricted}
          (query-perms/required-perms
           (native "SELECT count(*) FROM toucan_sightings;")))))
 
@@ -111,10 +112,12 @@
 ;;; ------------------------------------------------- MBQL w/o JOIN --------------------------------------------------
 
 (deftest mbql-query-test
-  (is (= {:perms/data-access {(mt/id :venues) :unrestricted}}
+  (is (= {:perms/view-data :unrestricted
+          :perms/create-queries {(mt/id :venues) :query-builder}}
          (query-perms/required-perms (mt/mbql-query venues))))
 
-  (is (= {:perms/data-access {(mt/id :venues) :unrestricted}}
+  (is (= {:perms/view-data :unrestricted
+          :perms/create-queries {(mt/id :venues) :query-builder}}
          (query-perms/required-perms
           {:query    {:source-table (mt/id :venues)
                       :filter       [:> [:field (mt/id :venues :id) nil] 10]}
@@ -128,14 +131,16 @@
       (mt/with-no-data-perms-for-all-users!
         (binding [*current-user-permissions-set* (atom nil)
                   *current-user-id*              (mt/user->id :rasta)]
-          (is (= {:perms/data-access {(u/the-id table) :unrestricted}}
+          (is (= {:perms/view-data :unrestricted
+                  :perms/create-queries {(u/the-id table) :query-builder}}
                  (query-perms/required-perms
                   {:database (u/the-id db)
                    :type     :query
                    :query    {:source-table (u/the-id table)}})))))))
 
   (testing "should be able to calculate permissions of a query before normalization"
-    (is (= {:perms/data-access {(mt/id :venues) :unrestricted}}
+    (is (= {:perms/view-data :unrestricted
+            :perms/create-queries {(mt/id :venues) :query-builder}}
            (query-perms/required-perms
             {:query    {"SOURCE_TABLE" (mt/id :venues)
                         "FILTER"       [">" (mt/id :venues :id) 10]}
@@ -147,8 +152,9 @@
 
 (deftest mbql-query-with-join-test
   (testing "you should need perms for both tables if you include a JOIN"
-    (is (= {:perms/data-access {(mt/id :venues) :unrestricted
-                                (mt/id :checkins) :unrestricted}}
+    (is (= {:perms/view-data :unrestricted
+            :perms/create-queries {(mt/id :venues) :query-builder
+                                   (mt/id :checkins) :query-builder}}
            (query-perms/required-perms
             (mt/mbql-query checkins
               {:order-by [[:asc $checkins.venue_id->venues.name]]}))))))
@@ -208,7 +214,8 @@
 
   (testing (str "However if you just pass in the same query directly as a `:source-query` you will still require "
                 "READWRITE permissions to save the query since we can't verify that it belongs to a Card that you can view.")
-    (is (= {:perms/native-query-editing :yes}
+    (is (= {:perms/view-data :unrestricted
+            :perms/create-queries :query-builder-and-native}
            (query-perms/required-perms
             {:database (mt/id)
              :type     :query
@@ -216,8 +223,8 @@
             :throw-exceptions? true)))))
 
 (deftest ^:parallel invalid-queries-test
-  (testing "invalid/legacy queries should return perms for something that doesn't exist so no one gets to see it"
-    (is (= {:perms/data-access {0 :unrestricted}}
+  (testing "invalid/legacy queries should remove invalid clauses and calculate permissions based on valid parts of the query"
+    (is (= {:perms/view-data {(mt/id :venues) :unrestricted}}
            (query-perms/required-perms
             (mt/mbql-query venues
               {:filter [:WOW 100 200]}))))))
@@ -228,8 +235,9 @@
                                                  (mt/mbql-query checkins
                                                    {:aggregation [[:sum $id]]
                                                     :breakout    [$user_id]}))]
-      (is (= {:perms/data-access {(mt/id :users) :unrestricted
-                                  (mt/id :checkins) :unrestricted}}
+      (is (= {:perms/view-data :unrestricted
+              :perms/create-queries {(mt/id :users) :query-builder
+                                     (mt/id :checkins) :query-builder}}
              (query-perms/required-perms
               (mt/mbql-query users
                 {:joins [{:fields       :all
@@ -241,8 +249,9 @@
                  :limit 10})
               :throw-exceptions? true)))
 
-      (is (= {:perms/data-access {(mt/id :users) :unrestricted
-                                  (mt/id :checkins) :unrestricted}}
+      (is (= {:perms/view-data :unrestricted
+              :perms/create-queries {(mt/id :users) :query-builder
+                                     (mt/id :checkins) :query-builder}}
            (query-perms/required-perms
             (mt/mbql-query users
               {:joins [{:alias        "c"
