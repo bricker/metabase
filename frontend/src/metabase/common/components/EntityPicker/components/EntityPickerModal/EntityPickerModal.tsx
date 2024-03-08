@@ -29,6 +29,7 @@ export type EntityPickerModalOptions = {
   showSearch?: boolean;
   hasConfirmButtons?: boolean;
   allowCreateNew?: boolean;
+  shouldShowItem?: (item: any) => boolean;
 };
 
 export const defaultOptions: EntityPickerModalOptions = {
@@ -37,6 +38,7 @@ export const defaultOptions: EntityPickerModalOptions = {
   showSearch: true,
   hasConfirmButtons: true,
   allowCreateNew: true,
+  shouldShowItem: () => true,
 };
 
 export interface EntityPickerModalProps<TItem> {
@@ -65,6 +67,7 @@ export function EntityPickerModal<TItem extends TypeWithModel>({
   actionButtons = [],
   searchResultFilter,
   trapFocus = true,
+  shouldShowItem,
 }: EntityPickerModalProps<TItem>) {
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [searchResults, setSearchResults] = useState<SearchResult[] | null>(
@@ -139,6 +142,8 @@ export function EntityPickerModal<TItem extends TypeWithModel>({
                 onCancel={onClose}
                 canConfirm={canSelectItem}
                 actionButtons={actionButtons}
+                confirmButtonText={options.confirmButtonText}
+                cancelButtonText={options.cancelButtonText}
               />
             )}
           </ErrorBoundary>
