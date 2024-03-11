@@ -1,7 +1,6 @@
 (ns metabase.lib.query
   (:refer-clojure :exclude [remove])
   (:require
-   [malli.core :as mc]
    [medley.core :as m]
    [metabase.lib.convert :as lib.convert]
    [metabase.lib.dispatch :as lib.dispatch]
@@ -17,7 +16,8 @@
    [metabase.mbql.util :as mbql.u]
    [metabase.shared.util.i18n :as i18n]
    [metabase.util :as u]
-   [metabase.util.malli :as mu]))
+   [metabase.util.malli :as mu]
+   [metabase.util.malli.registry :as mr]))
 
 (defmethod lib.metadata.calculation/metadata-method :mbql/query
   [_query _stage-number _query]
@@ -61,7 +61,7 @@
 (mu/defn can-run :- :boolean
   "Returns whether the query is runnable. Manually validate schema for cljs."
   [query :- ::lib.schema/query]
-  (and (mc/validate ::lib.schema/query query)
+  (and (mr/validate ::lib.schema/query query)
        (boolean (can-run-method query))))
 
 (mu/defn query-with-stages :- ::lib.schema/query

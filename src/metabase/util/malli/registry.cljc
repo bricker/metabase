@@ -19,6 +19,8 @@
   [k schema value-thunk]
   (or (get-in @cache [k schema])
       (let [v (value-thunk)]
+        (when (> (count @cache) 10000)
+          (reset! cache {}))
         (swap! cache assoc-in [k schema] v)
         v)))
 
