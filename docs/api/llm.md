@@ -1,12 +1,12 @@
 ---
-title: "Llm"
+title: "LLM"
 summary: |
-  API endpoints for Llm.
+  API endpoints for LLM.
 ---
 
-# Llm
+# LLM
 
-API endpoints for Llm.
+API endpoints for LLM.
 
 ## `POST metabase-enterprise.llm.api/card/summarize`
 
