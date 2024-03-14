@@ -117,7 +117,7 @@ export interface InheritStrategy extends StrategyBase {
 //   schedule: string;
 // }
 
-// TODO: rename to Strategy
+// TODO: rename to Strategy. I've shortened the name temporarily because I keep misspelling 'strategy'
 /** Cache invalidation strategy */
 export type Strat =
   | DoNotCacheStrategy

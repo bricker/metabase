@@ -7,7 +7,7 @@ import { Button } from "metabase/ui";
 
 type ButtonProps = BaseButtonProps & HTMLAttributes<HTMLButtonElement>;
 
-export const Panel = styled.div`
+export const Panel = styled.div<{ $animate?: boolean }>`
   overflow-y: auto;
   display: flex;
   flex-flow: column nowrap;
@@ -26,16 +26,25 @@ export const Panel = styled.div`
     border-top-right-radius: 1rem;
     border-bottom-right-radius: 1rem;
   }
+  ${props =>
+    props.$animate
+      ? // TODO: Confirm that dollar sign is needed
+        `
+  transform: translateX(-25%);
+  opacity: 0;
+  animation: slide-in 0.35s forwards;
+  @keyframes slide-in {
+    to {
+      transform: translateX(0);
+      opacity: 1;
+    }
+  }
+  `
+      : ""}
 `;
+Panel.defaultProps = { $animate: false };
 
-export const Chip = styled(Button, {
-  shouldForwardProp: prop => prop !== "configIsBeingEdited",
-})<
-  {
-    configIsBeingEdited?: boolean;
-    variant: string;
-  } & ButtonProps
->`
+export const Chip = styled(Button)<{ variant: string } & ButtonProps>`
   cursor: pointer;
   display: flex;
   flex-flow: row nowrap;

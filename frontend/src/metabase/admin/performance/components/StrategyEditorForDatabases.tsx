@@ -1,3 +1,4 @@
+import { useFormikContext } from "formik";
 import type { Dispatch, SetStateAction } from "react";
 import {
   useCallback,
@@ -96,7 +97,7 @@ export const StrategyEditorForDatabases = ({
 
   const [configs, setConfigs] = useState<Config[]>([]);
 
-  const [shouldShowDBList, setShouldShowDBList] = useState(false);
+  const [shouldShowDBList, setShouldShowDBList] = useState(true);
 
   useEffect(() => {
     if (configsFromAPI) {
@@ -157,7 +158,7 @@ export const StrategyEditorForDatabases = ({
 
   /** The config for the currently edited database, or the root strategy */
   const targetConfig = savedConfigs.get(targetId);
-  const currentStrategy = targetConfig?.strategy;
+  const savedStrategy = targetConfig?.strategy;
   const defaults = useStrategyDefaults(databases, targetConfig);
 
   const { debouncedRequest, showSuccessToast, showErrorToast } = useRequests();
@@ -264,7 +265,7 @@ export const StrategyEditorForDatabases = ({
 
   const saveStrategy = (newStrategyValues: Partial<Strat> | null) => {
     const strategyType: StrategyType | undefined =
-      newStrategyValues?.type ?? currentStrategy?.type;
+      newStrategyValues?.type ?? savedStrategy?.type;
     const relevantDefaults =
       targetId && strategyType ? defaults?.get(targetId)?.[strategyType] : null;
     const newStrategy = newStrategyValues
@@ -326,7 +327,11 @@ export const StrategyEditorForDatabases = ({
       >
         {!canOnlyConfigureRootStrategy && (
           <>
-            <Panel role="group" style={{ backgroundColor: color("bg-light") }}>
+            {/* Root strategy */}
+            <Panel
+              role="group"
+              style={{ backgroundColor: color("bg-light"), zIndex: 3 }}
+            >
               <Button
                 variant="subtle"
                 p=".25rem .5rem"
@@ -403,7 +408,15 @@ export const StrategyEditorForDatabases = ({
               </Chip>
             </Panel>
             {shouldShowDBList && (
-              <Panel role="group">
+              <Panel
+                $animate
+                role="group"
+                style={{
+                  borderTopRightRadius: 0,
+                  borderBottomRightRadius: 0,
+                  zIndex: 2,
+                }}
+              >
                 {databases?.map(db => (
                   <DatabaseWidget
                     db={db}
@@ -419,7 +432,7 @@ export const StrategyEditorForDatabases = ({
         )}
         {showEditor && (
           <Editor
-            currentStrategy={currentStrategy}
+            savedStrategy={savedStrategy}
             targetId={targetId}
             saveStrategy={saveStrategy}
             defaults={defaults}
@@ -431,21 +444,21 @@ export const StrategyEditorForDatabases = ({
 };
 
 export const Editor = ({
-  currentStrategy,
+  savedStrategy,
   targetId,
   saveStrategy,
   defaults,
 }: {
-  currentStrategy?: Strat;
+  savedStrategy?: Strat;
   targetId: number | "root";
   saveStrategy: (newStrategy: Partial<Strat> | null) => void;
   defaults: DefaultsMap | null;
 }) => {
-  const currentStrategyType = currentStrategy?.type ?? "inherit";
+  const savedStrategyType = savedStrategy?.type ?? "inherit";
 
   /** The strategy displayed in the form. It might not be saved yet. */
   const [selectedStrategyType, setSelectedStrategyType] =
-    useState<StrategyType>(currentStrategyType);
+    useState<StrategyType>(savedStrategyType);
 
   const defaultsForCurrentTargetAndStrategy =
     defaults?.get(targetId)?.[selectedStrategyType];
@@ -459,12 +472,12 @@ export const Editor = ({
     saveStrategy(
       values.type === "inherit"
         ? null // Delete the strategy
-        : { ...currentStrategy, ...values },
+        : { ...savedStrategy, ...values },
     );
   };
 
   return (
-    <Panel>
+    <Panel style={{ zIndex: 1 }} $animate>
       <FormProvider<Strat>
         initialValues={selectedStrategy}
         validationSchema={strategyValidationSchema}
@@ -482,7 +495,7 @@ export const Editor = ({
           <Stack spacing="xl">
             <StrategySelector
               targetId={targetId}
-              currentStrategy={selectedStrategy}
+              savedStrategy={selectedStrategy}
               setSelectedStrategy={setSelectedStrategyType}
             />
             {selectedStrategyType === "ttl" && (
@@ -520,15 +533,16 @@ export const Editor = ({
                     <Title order={3}>{t`Schedule`}</Title>
                     <p>{t`(explanation goes here)`}</p>
                     <CronInput
-                      initialValue={currentStrategy.schedule}
+                      initialValue={savedStrategy.schedule}
                     />
                   </section>
               )}
                 */}
           </Stack>
-          <Box mt="2rem">
-            <FormSubmitButton label={t`Save changes`} variant="filled" />
-          </Box>
+          <FormButtons
+            savedStrategy={savedStrategy}
+            selectedStrategy={selectedStrategy}
+          />
         </Form>
       </FormProvider>
       {/*
@@ -549,6 +563,26 @@ TODO: I'm not sure this string translates well
 </section>
             */}
     </Panel>
+  );
+};
+
+export const FormButtons = ({
+  savedStrategy,
+  selectedStrategy,
+}: {
+  savedStrategy?: Strat;
+  selectedStrategy?: Strat;
+}) => {
+  const dirty =
+    useFormikContext().dirty || savedStrategy?.type !== selectedStrategy?.type;
+  if (!dirty) {
+    return null;
+  }
+  return (
+    <Box mt="2rem">
+      <Button label={t`Cancel`} variant="subtle" />
+      <FormSubmitButton label={t`Save changes`} variant="filled" />
+    </Box>
   );
 };
 
@@ -587,7 +621,6 @@ export const DatabaseWidget = ({
           label={t`Inheriting from Databases setting`}
         >
           <Chip
-            configIsBeingEdited={isBeingEdited}
             onClick={() => {
               setTargetId(db.id);
             }}
@@ -620,23 +653,23 @@ export const DatabaseWidget = ({
 
 const StrategySelector = ({
   targetId,
-  currentStrategy,
+  savedStrategy,
   setSelectedStrategy,
 }: {
   targetId: number | "root" | null;
-  currentStrategy?: Strat;
+  savedStrategy?: Strat;
   setSelectedStrategy: Dispatch<SetStateAction<StrategyType>>;
 }) => {
   const radioButtonMapRef = useRef<Map<string | null, HTMLInputElement>>(
     new Map(),
   );
   const radioButtonMap = radioButtonMapRef.current;
-  const currentStrategyType = currentStrategy?.type ?? "inherit";
+  const savedStrategyType = savedStrategy?.type ?? "inherit";
 
   useEffect(
     () => {
-      if (currentStrategyType) {
-        radioButtonMap.get(currentStrategyType)?.focus();
+      if (savedStrategyType) {
+        radioButtonMap.get(savedStrategyType)?.focus();
       }
     },
     // We only want to focus the radio button when the targetId changes,
