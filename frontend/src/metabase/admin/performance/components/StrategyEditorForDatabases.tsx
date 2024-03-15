@@ -388,14 +388,18 @@ export const StrategyEditorForDatabases = ({
                 }}
                 pt="0.25rem"
                 pb="0.25rem"
-                pl={rootStrategyIconName ? "0.5rem" : ".65rem"}
-                pr="0.5rem"
+                style={{
+                  paddingInlineStart: rootStrategyIconName
+                    ? "0.5rem"
+                    : ".65rem",
+                  paddingInlineEnd: "0.5rem",
+                }}
                 lh="1.5rem"
                 w="100%"
                 rightIcon={
                   <FixedSizeIcon
                     name="ellipsis"
-                    style={{ paddingRight: "2px" }}
+                    style={{ paddingInlineEnd: "2px" }}
                   />
                 }
                 variant={targetId === "root" ? "filled" : "white"}
@@ -412,8 +416,8 @@ export const StrategyEditorForDatabases = ({
                 $animate
                 role="group"
                 style={{
-                  borderTopRightRadius: 0,
-                  borderBottomRightRadius: 0,
+                  borderStartEndRadius: 0,
+                  borderEndEndRadius: 0,
                   zIndex: 2,
                 }}
               >
@@ -717,7 +721,13 @@ export const PositiveNumberInput = ({ fieldName }: { fieldName: string }) => {
       name={fieldName}
       type="number"
       min={1}
-      styles={{ input: { textAlign: "right", maxWidth: "3.5rem" } }}
+      styles={{
+        input: {
+          // This is text-align: right but RTL friendly
+          textAlign: "end",
+          maxWidth: "3.5rem",
+        },
+      }}
       autoComplete="off"
     />
   );
