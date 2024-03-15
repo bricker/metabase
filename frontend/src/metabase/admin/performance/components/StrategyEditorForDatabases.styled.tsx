@@ -17,14 +17,14 @@ export const Panel = styled.div<{ $animate?: boolean }>`
   border-color: ${color("border")};
   border-width: 2px 1px 2px 0;
   &:first-child {
-    border-left-width: 2px;
-    border-top-left-radius: 1rem;
-    border-bottom-left-radius: 1rem;
+    border-inline-start-width: 2px;
+    border-start-start-radius: 1rem;
+    border-end-start-radius: 1rem;
   }
   &:last-child {
-    border-right-width: 2px;
-    border-top-right-radius: 1rem;
-    border-bottom-right-radius: 1rem;
+    border-inline-end-width: 2px;
+    border-start-end-radius: 1rem;
+    border-end-end-radius: 1rem;
   }
   ${props =>
     props.$animate
