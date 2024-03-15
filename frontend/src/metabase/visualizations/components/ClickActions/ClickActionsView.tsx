@@ -26,8 +26,8 @@ export const ClickActionsView = ({
   const hasOnlyOneSection = sections.length === 1;
 
   return (
-    <Container style={{ width: clicked.plus ? 240 : undefined }}>
-      {clicked.plus && (
+    <Container style={{ width: clicked?.plus ? 240 : undefined }}>
+      {clicked?.plus && (
         <Text mb="sm" weight="bold">
           Create a custom column
         </Text>
