@@ -1,7 +1,9 @@
 /* eslint-disable react/prop-types */
+// eslint-disable-next-line no-restricted-imports
+import { getStylesRef } from "@mantine/core";
 import cx from "classnames";
 import PropTypes from "prop-types";
-import { createRef, forwardRef, Component } from "react";
+import { Component, createRef, forwardRef } from "react";
 import ReactDOM from "react-dom";
 import { connect } from "react-redux";
 import { Grid, ScrollSync } from "react-virtualized";
@@ -22,26 +24,32 @@ import { formatValue } from "metabase/lib/formatting";
 import { zoomInRow } from "metabase/query_builder/actions";
 import { getQueryBuilderMode } from "metabase/query_builder/selectors";
 import { EmotionCacheProvider } from "metabase/styled-components/components/EmotionCacheProvider";
-import { Icon, DelayGroup } from "metabase/ui";
+import {
+  DelayGroup,
+  Flex,
+  Icon,
+  Button as NewButton,
+  Tooltip as NewTooltip,
+} from "metabase/ui";
 import {
   getTableCellClickedObject,
-  getTableHeaderClickedObject,
   getTableClickedObjectRowData,
+  getTableHeaderClickedObject,
   isColumnRightAligned,
 } from "metabase/visualizations/lib/table";
 import { getColumnExtent } from "metabase/visualizations/lib/utils";
 import * as Lib from "metabase-lib";
 import { isAdHocModelQuestionCard } from "metabase-lib/v1/metadata/utils/models";
-import { isID, isPK, isFK } from "metabase-lib/v1/types/utils/isa";
+import { isFK, isID, isPK } from "metabase-lib/v1/types/utils/isa";
 import { memoizeClass } from "metabase-lib/v1/utils";
 
 import MiniBar from "../MiniBar";
 
 import {
-  TableDraggable,
   ExpandButton,
   HeaderCell,
   ResizeHandle,
+  TableDraggable,
   TableInteractiveRoot,
 } from "./TableInteractive.styled";
 
@@ -674,7 +682,13 @@ class TableInteractive extends Component {
   // We need to prevent that by passing `enableUserSelectHack={false}`
   // to draggable components used in measurements
   // We should maybe rethink the approach to measurements or render a very basic table header, without react-draggable
-  tableHeaderRenderer = ({ key, style, columnIndex, isVirtual = false }) => {
+  tableHeaderRenderer = ({
+    key,
+    style,
+    columnIndex,
+    isVirtual = false,
+    plus,
+  }) => {
     const {
       data,
       isPivoted,
@@ -773,7 +787,7 @@ class TableInteractive extends Component {
               "TableInteractive-cellWrapper--active": isDragging,
               "TableInteractive-headerCellData--sorted": isSorted,
               "cursor-pointer": isClickable,
-              "justify-end": isRightAligned,
+              "justify-end": isRightAligned && !plus,
             },
           )}
           role="columnheader"
@@ -794,32 +808,57 @@ class TableInteractive extends Component {
             stageIndex={-1}
             column={query && Lib.fromLegacyColumn(query, stageIndex, column)}
             timezone={data.results_timezone}
-            disabled={this.props.clicked != null || !hasMetadataPopovers}
+            disabled={
+              this.props.clicked != null || !hasMetadataPopovers || plus
+            }
             showFingerprintInfo
           >
-            {renderTableHeaderWrapper(
-              <Ellipsified tooltip={columnTitle}>
-                {isSortable && isRightAligned && (
-                  <Icon
-                    className="Icon mr1"
-                    name={isAscending ? "chevronup" : "chevrondown"}
-                    size={10}
-                    data-testid={columnInfoPopoverTestId}
-                  />
+            <span>
+              {plus && (
+                <Flex align="center" justify="flex-start">
+                  <NewTooltip label="Create a custom column">
+                    <NewButton
+                      leftIcon={<Icon name="add" />}
+                      size="xs"
+                      variant="subtle"
+                      border
+                      styles={{
+                        root: {
+                          [`&:has(.${getStylesRef("label")}:empty)`]: {
+                            padding: "3px 5px",
+                            border: "1px solid rgba(80, 158, 227, 0.2)",
+                          },
+                        },
+                      }}
+                    />
+                  </NewTooltip>
+                </Flex>
+              )}
+              {!plus &&
+                renderTableHeaderWrapper(
+                  <Ellipsified tooltip={columnTitle}>
+                    {isSortable && isRightAligned && (
+                      <Icon
+                        className="Icon mr1"
+                        name={isAscending ? "chevronup" : "chevrondown"}
+                        size={10}
+                        data-testid={columnInfoPopoverTestId}
+                      />
+                    )}
+                    {columnTitle}
+                    {isSortable && !isRightAligned && (
+                      <Icon
+                        className="Icon ml1"
+                        name={isAscending ? "chevronup" : "chevrondown"}
+                        size={10}
+                        data-testid={columnInfoPopoverTestId}
+                      />
+                    )}
+                  </Ellipsified>,
+                  column,
+                  columnIndex,
                 )}
-                {columnTitle}
-                {isSortable && !isRightAligned && (
-                  <Icon
-                    className="Icon ml1"
-                    name={isAscending ? "chevronup" : "chevrondown"}
-                    size={10}
-                    data-testid={columnInfoPopoverTestId}
-                  />
-                )}
-              </Ellipsified>,
-              column,
-              columnIndex,
-            )}
+            </span>
           </QueryColumnInfoPopover>
           <TableDraggable
             enableUserSelectHack={false}
@@ -1060,6 +1099,9 @@ class TableInteractive extends Component {
                       : this.tableHeaderRenderer({
                           ...props,
                           columnIndex: props.columnIndex - gutterColumn,
+                          plus:
+                            props.columnIndex ===
+                            cols.length + gutterColumn - 1,
                         })
                   }
                   onScroll={({ scrollLeft }) => onScroll({ scrollLeft })}
@@ -1083,14 +1125,20 @@ class TableInteractive extends Component {
                   columnWidth={this.getDisplayColumnWidth}
                   rowCount={rows.length}
                   rowHeight={ROW_HEIGHT}
-                  cellRenderer={props =>
-                    gutterColumn && props.columnIndex === 0
+                  cellRenderer={props => {
+                    const last =
+                      props.columnIndex === cols.length + gutterColumn - 1;
+                    if (last) {
+                      return () => null;
+                    }
+
+                    return gutterColumn && props.columnIndex === 0
                       ? () => null // we need a phantom cell to properly offset columns
                       : this.cellRenderer({
                           ...props,
                           columnIndex: props.columnIndex - gutterColumn,
-                        })
-                  }
+                        });
+                  }}
                   scrollTop={scrollTop}
                   onScroll={({ scrollLeft, scrollTop }) => {
                     this.props.onActionDismissal();
