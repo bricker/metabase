@@ -13,7 +13,9 @@ import { c, t } from "ttag";
 import _ from "underscore";
 
 import { useDatabaseListQuery } from "metabase/common/hooks";
+import { LeaveConfirmationModalContent } from "metabase/components/LeaveConfirmationModal";
 import LoadingAndErrorWrapper from "metabase/components/LoadingAndErrorWrapper";
+import Modal from "metabase/components/Modal";
 import {
   Form,
   FormProvider,
@@ -45,6 +47,7 @@ import type {
   Config,
   GetConfigByModelId,
   Model,
+  ModelId,
   Strat,
   StrategyType,
 } from "../types";
@@ -52,8 +55,6 @@ import { getShortStrategyLabel, isValidStrategy, Strategies } from "../types";
 import { strategyValidationSchema } from "../validation";
 
 import { Chip, Panel, TabWrapper } from "./StrategyEditorForDatabases.styled";
-
-const defaultRootStrategy: Strat = { type: "nocache" };
 
 export const StrategyEditorForDatabases = ({
   tabsRef,
@@ -145,10 +146,28 @@ export const StrategyEditorForDatabases = ({
   // );
 
   /** Id of the database currently being edited, or 'root' for the root strategy */
-  const [targetId, setTargetId] = useState<number | "root" | null>(null);
+  const [targetId, setTargetId] = useState<ModelId | null>(null);
 
-  const rootStrategy =
-    savedConfigs.get("root")?.strategy ?? defaultRootStrategy;
+  const onConfirmDiscardChanges = useRef<() => void>(() => null);
+
+  const safelyUpdateTargetId = (
+    newTargetId: ModelId | null,
+    callback: () => void = () => null,
+  ) => {
+    if (targetId === newTargetId) {
+      return;
+    }
+    // TODO: if the form is dirty, prompt the user to confirm discarding their changes
+    setShowCancelEditWarning(true);
+    onConfirmDiscardChanges.current = () => {
+      setTargetId(newTargetId);
+      callback();
+    };
+  };
+
+  const rootStrategy = savedConfigs.get("root")?.strategy ?? {
+    type: "nocache",
+  };
 
   useEffect(() => {
     if (targetId === "root") {
@@ -249,6 +268,8 @@ export const StrategyEditorForDatabases = ({
     };
   }, [tabsRef, setTabsHeight, areDatabasesLoading, areConfigsLoading]);
 
+  const [showCancelEditWarning, setShowCancelEditWarning] = useState(false);
+
   useEffect(
     /**
      * @see https://metaboat.slack.com/archives/C02H619CJ8K/p1709558533499399
@@ -316,6 +337,14 @@ export const StrategyEditorForDatabases = ({
       <Text component="aside" lh="1rem" maw="32rem" mb="1.5rem">
         {PLUGIN_CACHING.explanation}
       </Text>
+      <Modal isOpen={showCancelEditWarning}>
+        <LeaveConfirmationModalContent
+          onAction={() => {
+            onConfirmDiscardChanges.current();
+          }}
+          onClose={() => setShowCancelEditWarning(false)}
+        />
+      </Modal>
       <Grid
         style={{
           display: "grid",
@@ -356,9 +385,8 @@ export const StrategyEditorForDatabases = ({
                 }}
                 onClick={() => {
                   if (!shouldShowDBList) {
-                    setTargetId(null);
+                    setShouldShowDBList(isVisible => !isVisible);
                   }
-                  setShouldShowDBList(isVisible => !isVisible);
                 }}
               >
                 <Flex gap="0.5rem" w="100%" align="center">
@@ -404,8 +432,12 @@ export const StrategyEditorForDatabases = ({
                 }
                 variant={targetId === "root" ? "filled" : "white"}
                 onClick={() => {
-                  setTargetId("root");
-                  setShouldShowDBList(false);
+                  if (targetId === "root") {
+                    return;
+                  }
+                  safelyUpdateTargetId("root", () => {
+                    setShouldShowDBList(false);
+                  });
                 }}
               >
                 {getShortStrategyLabel(rootStrategy)}
@@ -427,7 +459,7 @@ export const StrategyEditorForDatabases = ({
                     key={db.id.toString()}
                     savedConfigs={savedConfigs}
                     targetId={targetId}
-                    setTargetId={setTargetId}
+                    safelyUpdateTargetId={safelyUpdateTargetId}
                   />
                 ))}
               </Panel>
@@ -454,7 +486,7 @@ export const Editor = ({
   defaults,
 }: {
   savedStrategy?: Strat;
-  targetId: number | "root";
+  targetId: ModelId;
   saveStrategy: (newStrategy: Partial<Strat> | null) => void;
   defaults: DefaultsMap | null;
 }) => {
@@ -463,6 +495,10 @@ export const Editor = ({
   /** The strategy displayed in the form. It might not be saved yet. */
   const [selectedStrategyType, setSelectedStrategyType] =
     useState<StrategyType>(savedStrategyType);
+
+  useEffect(() => {
+    setSelectedStrategyType(savedStrategyType);
+  }, [savedStrategyType, targetId]);
 
   const defaultsForCurrentTargetAndStrategy =
     defaults?.get(targetId)?.[selectedStrategyType];
@@ -486,7 +522,7 @@ export const Editor = ({
         initialValues={selectedStrategy}
         validationSchema={strategyValidationSchema}
         onSubmit={handleFormSubmit}
-        enableReinitialize
+        enableReinitialize={true}
       >
         <Form
           style={{
@@ -584,7 +620,7 @@ export const FormButtons = ({
   }
   return (
     <Box mt="2rem">
-      <Button label={t`Cancel`} variant="subtle" />
+      <Button variant="subtle">{t`Cancel`}</Button>
       <FormSubmitButton label={t`Save changes`} variant="filled" />
     </Box>
   );
@@ -594,12 +630,12 @@ export const DatabaseWidget = ({
   db,
   savedConfigs,
   targetId,
-  setTargetId,
+  safelyUpdateTargetId,
 }: {
   db: Database;
-  targetId: number | "root" | null;
+  targetId: ModelId | null;
   savedConfigs: GetConfigByModelId;
-  setTargetId: Dispatch<SetStateAction<number | "root" | null>>;
+  safelyUpdateTargetId: (newTargetId: ModelId | null) => void;
 }) => {
   const dbConfig = savedConfigs.get(db.id);
   const rootStrategy = savedConfigs.get("root")?.strategy;
@@ -626,7 +662,10 @@ export const DatabaseWidget = ({
         >
           <Chip
             onClick={() => {
-              setTargetId(db.id);
+              if (targetId === db.id) {
+                return;
+              }
+              safelyUpdateTargetId(db.id);
             }}
             variant={isBeingEdited ? "filled" : "white"}
             ml="auto"
@@ -660,7 +699,7 @@ const StrategySelector = ({
   savedStrategy,
   setSelectedStrategy,
 }: {
-  targetId: number | "root" | null;
+  targetId: ModelId | null;
   savedStrategy?: Strat;
   setSelectedStrategy: Dispatch<SetStateAction<StrategyType>>;
 }) => {

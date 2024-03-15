@@ -13,6 +13,8 @@ import {
   //scheduleStrategyValidationSchema,
 } from "./validation";
 
+export type ModelId = number | "root";
+
 type StrategyData = {
   label: string;
   shortLabel?: string;
@@ -71,7 +73,7 @@ export const isValidStrategyName = (
   return Object.keys(Strategies).includes(strategy);
 };
 
-export type GetConfigByModelId = Map<number | "root" | null, Config>;
+export type GetConfigByModelId = Map<ModelId | null, Config>;
 
 export type Model =
   | "root"
