@@ -43,8 +43,7 @@ export const Chip = styled(Button)<{ variant: string } & ButtonProps>`
     gap: 0.5rem;
   }
 `;
-
-Chip.defaultProps = { animate: false, radius: "sm" };
+Chip.defaultProps = { radius: "sm" };
 
 export const TabWrapper = styled.div`
   display: grid;
