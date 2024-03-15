@@ -138,13 +138,6 @@ export interface Config {
   strategy: Strat;
 }
 
-export type DBStrategySetter = (
-  databaseId: number,
-  newStrategy: Strat | null,
-) => void;
-
-export type RootStrategySetter = (newStrategy: Strat | null) => void;
-
 export const isValidStrategy = (x: unknown): x is Strat => {
   return strategyValidationSchema.validateSync(x);
 };

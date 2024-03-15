@@ -75,11 +75,12 @@ export const StrategyEditorForDatabases = ({
     isLoading: areDatabasesLoading,
   } = useDatabaseListQuery();
 
-  const databases = unfilteredDatabases?.filter(
+  const configurableDatabases = unfilteredDatabases?.filter(
     PLUGIN_CACHING.canConfigureDatabase,
   );
 
-  const canOnlyConfigureRootStrategy = databases?.length === 0;
+  const canOnlyConfigureRootStrategy = configurableDatabases?.length === 0;
+  const databases = configurableDatabases;
 
   const {
     value: configsFromAPI,
@@ -186,7 +187,8 @@ export const StrategyEditorForDatabases = ({
     }
   }, [targetId]);
 
-  /** The config for the currently edited database, or the root strategy */
+  /** The config for the database currently being edited,
+   * or the config for the root strategy if that is what is being edited */
   const targetConfig = savedConfigs.get(targetId);
   const savedStrategy = targetConfig?.strategy;
   const defaults = useStrategyDefaults(databases, targetConfig);
@@ -740,7 +742,7 @@ export const PositiveNumberInput = ({ fieldName }: { fieldName: string }) => {
       min={1}
       styles={{
         input: {
-          // This is text-align: right but RTL friendly
+          // This is like `text-align: right` but it's RTL-friendly
           textAlign: "end",
           maxWidth: "3.5rem",
         },
@@ -774,18 +776,17 @@ const RootStrategyChip = ({
       styles={{
         inner: {
           display: "flex",
+          flex: 1,
           flexFlow: "row nowrap",
           justifyContent: "flex-start",
-          flex: 1,
         },
         label: {
-          flex: 1,
           display: "flex",
+          flex: 1,
           flexFlow: "row nowrap",
         },
       }}
-      pt="0.25rem"
-      pb="0.25rem"
+      py="0.25rem"
       style={{
         paddingInlineStart: rootStrategyIconName ? "0.5rem" : ".65rem",
         paddingInlineEnd: "0.5rem",
