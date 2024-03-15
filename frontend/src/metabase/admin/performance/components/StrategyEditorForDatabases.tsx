@@ -216,7 +216,6 @@ export const StrategyEditorForDatabases = ({
         config => config.model_id !== model_id,
       );
 
-      const configBeforeChange = savedConfigs.get(model_id);
       const onSuccess = async () => {
         setIsRequestPending(false);
         await showSuccessToast();
@@ -224,15 +223,6 @@ export const StrategyEditorForDatabases = ({
       const onError = async () => {
         setIsRequestPending(false);
         await showErrorToast();
-        // Revert to earlier state
-        setConfigs(
-          configBeforeChange
-            ? [...otherConfigs, configBeforeChange]
-            : otherConfigs,
-        );
-        // FIXME: this reverts to an earlier state even if the user has already
-        // changed the value again. We should revert only if there is no newer
-        // change
       };
 
       if (newStrategy) {
@@ -241,7 +231,6 @@ export const StrategyEditorForDatabases = ({
           strategy: newStrategy,
         };
         setConfigs([...otherConfigs, newConfig]);
-        // the bug is that when i click the databasewidget, configs has not yet been updated, so the savedDBStrategy is stale, and so it doesn't match the selectedStrategy, and so the form is considered dirty. but why do I even need to do this additional check?
         setIsRequestPending(true);
         debouncedRequest(
           CacheConfigApi.update,
@@ -261,7 +250,7 @@ export const StrategyEditorForDatabases = ({
         );
       }
     },
-    [configs, savedConfigs, debouncedRequest, showErrorToast, showSuccessToast],
+    [configs, debouncedRequest, showErrorToast, showSuccessToast],
   );
 
   const setRootStrategy = (newStrategy: Strat) =>
@@ -384,8 +373,8 @@ export const StrategyEditorForDatabases = ({
 
   return (
     <FormProvider<Strat | Record<string, never>>
-      // initialValues={savedStrategy ?? {}}
-      initialValues={selectedStrategy} // Will using selectedStrategy here remove the error bug?
+      // TODO: This should use the strategy that failed to be saved if there was one
+      initialValues={savedStrategy ?? {}}
       validationSchema={strategyValidationSchema}
       onSubmit={handleFormSubmit}
       enableReinitialize={true}
