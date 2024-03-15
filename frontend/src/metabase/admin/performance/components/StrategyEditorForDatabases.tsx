@@ -43,15 +43,14 @@ import {
 } from "metabase/ui";
 import type Database from "metabase-lib/metadata/Database";
 
-import { useStrategyDefaults } from "../hooks/useDefaults";
 import { useRequests } from "../hooks/useRequests";
 import type {
   Config,
+  DurationStrategy,
   GetConfigByModelId,
   Model,
   ModelId,
   Strat,
-  StrategyType,
 } from "../types";
 import { getShortStrategyLabel, isValidStrategy, Strategies } from "../types";
 import { strategyValidationSchema } from "../validation";
@@ -175,7 +174,6 @@ export const StrategyEditorForDatabases = ({
    * or the config for the root strategy if that is what is being edited */
   const targetConfig = savedConfigs.get(targetId);
   const savedStrategy = targetConfig?.strategy;
-  const defaults = useStrategyDefaults(databases, targetConfig);
 
   const { debouncedRequest, showSuccessToast, showErrorToast } = useRequests();
 
@@ -277,16 +275,16 @@ export const StrategyEditorForDatabases = ({
   const showStrategyForm = targetId !== null;
 
   const saveStrategy = (newStrategyValues: Partial<Strat> | null) => {
-    const strategyType: StrategyType | undefined =
-      newStrategyValues?.type ?? savedStrategy?.type;
-    const relevantDefaults =
-      targetId && strategyType ? defaults?.get(targetId)?.[strategyType] : null;
     const newStrategy = newStrategyValues
       ? {
-          ...relevantDefaults,
+          type: savedStrategy?.type,
           ...newStrategyValues,
         }
       : null;
+    // TODO: Should the backend even accept/require a unit?
+    if (newStrategy?.type === "duration") {
+      (newStrategy as DurationStrategy).unit = "hours";
+    }
     if (newStrategy !== null && !isValidStrategy(newStrategy)) {
       console.error(`Invalid strategy: ${JSON.stringify(newStrategy)}`);
       return;
@@ -451,15 +449,7 @@ export const StrategyForm = ({
   targetId: ModelId;
   isRequestPending: boolean;
 }) => {
-  const {
-    //setValues,
-    values,
-    setStatus,
-  } = useFormikContext<Strat>();
-
-  // useEffect(() => {
-  //   setValues(selectedStrategy);
-  // }, [selectedStrategy, setValues]);
+  const { values, setStatus } = useFormikContext<Strat>();
 
   useEffect(() => {
     setStatus(null);
