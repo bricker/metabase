@@ -28,28 +28,32 @@ export type StrategyType = "nocache" | "ttl" | "duration" | "inherit";
 
 /** Cache invalidation strategies and related metadata */
 export const Strategies: Record<StrategyType, StrategyData> = {
-  nocache: {
-    label: t`Don't cache results`,
-    validateWith: doNotCacheStrategyValidationSchema,
-  },
   ttl: {
-    label: t`When the time-to-live (TTL) expires`,
-    shortLabel: c("'TTL' is short for 'time-to-live'").t`TTL expiration`,
+    label: t`TTL: When the time-to-live (TTL) expires`,
+    shortLabel: c("'TTL' is short for 'time-to-live'").t`TTL`,
     validateWith: ttlStrategyValidationSchema,
     iconName: "clock",
   },
   duration: {
-    label: t`After a specific number of hours`,
+    label: t`Duration: after a specific number of hours`,
     validateWith: durationStrategyValidationSchema,
+    shortLabel: t`Duration`,
   },
-  inherit: { label: t`Inherit`, validateWith: inheritStrategyValidationSchema },
+  nocache: {
+    label: t`Don't cache results`,
+    validateWith: doNotCacheStrategyValidationSchema,
+  },
+  inherit: {
+    label: t`Use default`,
+    validateWith: inheritStrategyValidationSchema,
+  },
   // TODO: Add these in later
   // schedule: {
-  //   label: t`On a schedule`,
+  //   label: t`Scheduled: at regular intervals`,
   //   validateWith: scheduleStrategyValidationSchema,
   // },
   // query: {
-  //   label: t`When the data updates`,
+  //   label: t`Updated data: when there changes in the database`,
   //   validateWith: queryStrategyValidationSchema,
   // },
 };

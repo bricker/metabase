@@ -37,7 +37,7 @@ export const Chip = styled(Button)<{ variant: string } & ButtonProps>`
   padding: 1rem;
   ${({ variant }) =>
     `border: 1px solid ${color(
-      variant === "filled" ? "brand" : "border",
+      variant === "filled" || variant === "outline" ? "brand" : "border",
     )} ! important`};
   span {
     gap: 0.5rem;

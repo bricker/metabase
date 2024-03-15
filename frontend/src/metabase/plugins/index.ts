@@ -261,7 +261,7 @@ export const PLUGIN_CACHING = {
   hasQuestionCacheSection: (_question: Question) => false,
   canConfigureDatabase: () => false,
   showAd: true,
-  explanation: t`Cache the results of queries to have them display instantly.`,
+  explanation: t`Pick the policy for when cached query results should be invalidated.`,
 };
 
 export const PLUGIN_REDUCERS: {

@@ -1,5 +1,4 @@
 import { useFormikContext } from "formik";
-import type { Dispatch, SetStateAction } from "react";
 import {
   useCallback,
   useEffect,
@@ -29,13 +28,13 @@ import { PLUGIN_CACHING } from "metabase/plugins";
 import { CacheConfigApi } from "metabase/services";
 import type { IconName } from "metabase/ui";
 import {
-  Loader,
   Box,
   Button,
   FixedSizeIcon,
   Flex,
   Grid,
   Group,
+  Loader,
   Radio,
   Stack,
   Text,
@@ -137,24 +136,6 @@ export const StrategyEditorForDatabases = ({
     return map;
   }, [configs, databases]);
 
-  // This may be needed if the form's live data needs to be displayed elsewhere
-  // /** The configurations displayed in the form, which may not yet be saved */
-  // const liveConfigs = useMemo(
-  //   () => {
-  //     const liveConfigs = new Map(savedConfigs);
-  //     databases?.forEach(db => {
-  //       const savedConfig = savedConfigs.get(db.id);
-  //       const liveConfig = savedConfig ?? {
-  //         model: "database",
-  //         model_id: db.id,
-  //         strategy: { type: "inherit" }
-  //       };
-  //       liveConfigs.set(db.id, liveConfig);
-  //     });
-  //     return liveConfigs;
-  //   }, [databases]
-  // );
-
   /** Id of the database currently being edited, or 'root' for the root strategy */
   const [targetId, setTargetId] = useState<ModelId | null>(null);
 
@@ -225,13 +206,13 @@ export const StrategyEditorForDatabases = ({
         await showErrorToast();
       };
 
+      setIsRequestPending(true);
       if (newStrategy) {
         const newConfig: Config = {
           ...baseConfig,
           strategy: newStrategy,
         };
         setConfigs([...otherConfigs, newConfig]);
-        setIsRequestPending(true);
         debouncedRequest(
           CacheConfigApi.update,
           newConfig,
@@ -293,27 +274,7 @@ export const StrategyEditorForDatabases = ({
     [],
   );
 
-  const savedStrategyType = savedStrategy?.type ?? "inherit";
-
-  /** The strategy displayed in the form. It might not be saved yet. */
-  const [selectedStrategyType, setSelectedStrategyType] =
-    useState<StrategyType>(savedStrategyType);
-
-  useEffect(() => {
-    setSelectedStrategyType(savedStrategyType);
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- We don't want to update the selectedStrategyType when savedStrategyType changes. If the form submit fails, then we want to revert the saved strategy without changing the form.
-  }, [targetId]);
-
-  const defaultsForCurrentTargetAndStrategy = targetId
-    ? defaults?.get(targetId)?.[selectedStrategyType]
-    : null;
-
-  const selectedStrategy = {
-    ...defaultsForCurrentTargetAndStrategy,
-    type: selectedStrategyType,
-  } as Strat;
-
-  const showEditor = targetId !== null;
+  const showStrategyForm = targetId !== null;
 
   const saveStrategy = (newStrategyValues: Partial<Strat> | null) => {
     const strategyType: StrategyType | undefined =
@@ -373,8 +334,7 @@ export const StrategyEditorForDatabases = ({
 
   return (
     <FormProvider<Strat | Record<string, never>>
-      // TODO: This should use the strategy that failed to be saved if there was one
-      initialValues={savedStrategy ?? {}}
+      initialValues={savedStrategy ?? { type: "inherit" }}
       validationSchema={strategyValidationSchema}
       onSubmit={handleFormSubmit}
       enableReinitialize={true}
@@ -459,7 +419,7 @@ export const StrategyEditorForDatabases = ({
                 >
                   <Stack spacing="lg">
                     {databases?.map(db => (
-                      <DatabaseWidget
+                      <DatabaseFormTrigger
                         db={db}
                         key={db.id.toString()}
                         savedConfigs={savedConfigs}
@@ -472,11 +432,8 @@ export const StrategyEditorForDatabases = ({
               )}
             </>
           )}
-          {showEditor && (
-            <Editor
-              selectedStrategy={selectedStrategy}
-              setSelectedStrategyType={setSelectedStrategyType}
-              savedStrategy={savedStrategy}
+          {showStrategyForm && (
+            <StrategyForm
               targetId={targetId}
               isRequestPending={isRequestPending}
             />
@@ -487,28 +444,28 @@ export const StrategyEditorForDatabases = ({
   );
 };
 
-export const Editor = ({
-  selectedStrategy,
-  setSelectedStrategyType,
-  savedStrategy,
+export const StrategyForm = ({
   targetId,
   isRequestPending,
 }: {
-  selectedStrategy: Strat;
-  setSelectedStrategyType: Dispatch<SetStateAction<StrategyType>>;
-  savedStrategy?: Strat;
   targetId: ModelId;
   isRequestPending: boolean;
 }) => {
-  const { setValues, setStatus } = useFormikContext<Strat>();
+  const {
+    //setValues,
+    values,
+    setStatus,
+  } = useFormikContext<Strat>();
 
-  useEffect(() => {
-    setValues(selectedStrategy);
-  }, [selectedStrategy, setValues]);
+  // useEffect(() => {
+  //   setValues(selectedStrategy);
+  // }, [selectedStrategy, setValues]);
 
   useEffect(() => {
     setStatus(null);
   }, [targetId, setStatus]);
+
+  const selectedStrategyType = values.type;
 
   return (
     <Panel style={{ zIndex: 1 }}>
@@ -521,12 +478,8 @@ export const Editor = ({
         }}
       >
         <Stack spacing="xl">
-          <StrategySelector
-            targetId={targetId}
-            savedStrategy={selectedStrategy}
-            setSelectedStrategyType={setSelectedStrategyType}
-          />
-          {selectedStrategy.type === "ttl" && (
+          <StrategySelector targetId={targetId} />
+          {selectedStrategyType === "ttl" && (
             <>
               <section>
                 <Title order={4}>{t`Minimum query duration`}</Title>
@@ -546,7 +499,7 @@ export const Editor = ({
               </section>
             </>
           )}
-          {selectedStrategy.type === "duration" && (
+          {selectedStrategyType === "duration" && (
             <section>
               <Title
                 order={4}
@@ -567,11 +520,7 @@ export const Editor = ({
               )}
                 */}
         </Stack>
-        <FormButtons
-          savedStrategy={savedStrategy}
-          selectedStrategy={selectedStrategy}
-          isRequestPending={isRequestPending}
-        />
+        <FormButtons isRequestPending={isRequestPending} />
       </Form>
       {/*
           <StrategyConfig />
@@ -595,18 +544,11 @@ TODO: I'm not sure this string translates well
 };
 
 export const FormButtons = ({
-  savedStrategy,
-  selectedStrategy,
   isRequestPending,
 }: {
-  savedStrategy?: Strat;
-  selectedStrategy?: Strat;
   isRequestPending: boolean;
 }) => {
-  const formik = useFormikContext();
-  const formHasUnsavedData = !_.isEqual(savedStrategy, selectedStrategy);
-  const dirty = formik.dirty || formHasUnsavedData;
-  if (dirty || isRequestPending) {
+  if (useFormikContext().dirty || isRequestPending) {
     return (
       <Group mt="2rem" spacing="md">
         <Button variant="subtle">{t`Discard changes`}</Button>
@@ -627,7 +569,7 @@ export const FormButtons = ({
   }
 };
 
-export const DatabaseWidget = ({
+export const DatabaseFormTrigger = ({
   db,
   savedConfigs,
   targetId,
@@ -648,8 +590,18 @@ export const DatabaseWidget = ({
     throw new Error(t`Invalid strategy "${JSON.stringify(strategyForDB)}"`);
   }
   const isBeingEdited = targetId === db.id;
+
   const isFormDirty = useFormikContext().dirty;
-  //savedDBStrategy?.type !== selectedStrategy?.type;
+
+  // Ryan suggests thinking about the following: keep the form state more local to the form
+  // (so don't lift FormProvider up) and use something like onBeforeUnmount so that the form
+  // handles its own "confirm before closing" logic
+
+  // See if I can unify the two Chip components
+
+  // Use more components rather than having one big JSX
+
+  // Use forms/FormSubmitButton because it has good race condition logic built in
 
   return (
     <Box
@@ -665,29 +617,35 @@ export const DatabaseWidget = ({
             {db.name}
           </Title>
         </Flex>
-        <Tooltip
-          position="bottom"
-          disabled={!inheritsRootStrategy}
-          label={t`Inheriting from Databases setting`}
+        <Chip
+          onClick={() => {
+            if (targetId === db.id) {
+              return;
+            }
+            safelyUpdateTargetId(db.id, isFormDirty);
+          }}
+          variant={
+            isBeingEdited
+              ? "filled"
+              : inheritsRootStrategy
+              ? "white"
+              : "outline"
+          }
+          style={{
+            // like margin-left but RTL friendly
+            marginInlineStart: "auto",
+          }}
+          w="100%"
+          p="0.25rem 0.5rem"
+          styles={{
+            inner: { width: "100%", justifyContent: "space-between" },
+          }}
+          rightIcon={<FixedSizeIcon name="ellipsis" />}
         >
-          <Chip
-            onClick={() => {
-              if (targetId === db.id) {
-                return;
-              }
-              safelyUpdateTargetId(db.id, isFormDirty);
-            }}
-            variant={isBeingEdited ? "filled" : "white"}
-            style={{
-              // like margin-left but RTL friendly
-              marginInlineStart: "auto",
-            }}
-            w="100%"
-            p="0.25rem 0.5rem"
-            styles={{
-              inner: { width: "100%", justifyContent: "space-between" },
-            }}
-            rightIcon={<FixedSizeIcon name="ellipsis" />}
+          <Tooltip
+            position="bottom"
+            disabled={!inheritsRootStrategy}
+            label={t`Inheriting from Databases setting`}
           >
             <Flex wrap="nowrap" lh="1.5rem" gap=".5rem">
               {inheritsRootStrategy
@@ -700,39 +658,33 @@ export const DatabaseWidget = ({
                   )}`
                 : getShortStrategyLabel(strategyForDB)}
             </Flex>
-          </Chip>
-        </Tooltip>
+          </Tooltip>
+        </Chip>
       </Stack>
     </Box>
   );
 };
 
-const StrategySelector = ({
-  targetId,
-  savedStrategy,
-  setSelectedStrategyType: setSelectedStrategyType,
-}: {
-  targetId: ModelId | null;
-  savedStrategy?: Strat;
-  setSelectedStrategyType: Dispatch<SetStateAction<StrategyType>>;
-}) => {
+const StrategySelector = ({ targetId }: { targetId: ModelId | null }) => {
+  const { values } = useFormikContext<Strat>();
+
   const radioButtonMapRef = useRef<Map<string | null, HTMLInputElement>>(
     new Map(),
   );
   const radioButtonMap = radioButtonMapRef.current;
-  const savedStrategyType = savedStrategy?.type ?? "inherit";
 
-  useEffect(
-    () => {
-      if (savedStrategyType) {
-        radioButtonMap.get(savedStrategyType)?.focus();
-      }
-    },
-    // We only want to focus the radio button when the targetId changes,
-    // not when the strategy changes
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [targetId],
-  );
+  // useEffect(
+  //   () => {
+  //     const strategyType = values.type ?? "inherit";
+  //     if (strategyType) {
+  //       radioButtonMap.get(strategyType)?.focus();
+  //     }
+  //   },
+  //   // We only want to focus the radio button when the targetId changes,
+  //   // not when the strategy changes
+  //   // eslint-disable-next-line react-hooks/exhaustive-deps
+  //   [targetId],
+  // );
 
   const availableStrategies =
     targetId === "root" ? _.omit(Strategies, "inherit") : Strategies;
@@ -744,9 +696,6 @@ const StrategySelector = ({
           <Text lh="1rem">{t`When should cached query results be invalidated?`}</Text>
         }
         name="type"
-        onChange={(value: string) => {
-          setSelectedStrategyType(value as StrategyType);
-        }}
       >
         <Stack mt="md" spacing="md">
           {_.map(availableStrategies, (option, name) => (
@@ -757,6 +706,7 @@ const StrategySelector = ({
               value={name}
               key={name}
               label={option.label}
+              autoFocus={values.type === name}
             />
           ))}
         </Stack>

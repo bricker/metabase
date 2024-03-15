@@ -32,6 +32,11 @@ const getAdminPaths: () => AdminPath[] = () => {
       key: "data-model",
     },
     {
+      name: t`Performance`,
+      path: "/admin/performance",
+      key: "performance",
+    },
+    {
       name: t`People`,
       path: "/admin/people",
       key: "people",
@@ -57,12 +62,6 @@ const getAdminPaths: () => AdminPath[] = () => {
     name: t`Troubleshooting`,
     path: "/admin/troubleshooting",
     key: "troubleshooting",
-  });
-
-  items.push({
-    name: t`Performance`,
-    path: "/admin/performance",
-    key: "performance",
   });
 
   return items;
