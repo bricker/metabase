@@ -1,3 +1,4 @@
+import { Text } from "metabase/ui";
 import type { RegularClickAction } from "metabase/visualizations/types";
 
 import { ClickActionControl } from "./ClickActionControl";
@@ -16,6 +17,7 @@ interface Props {
 }
 
 export const ClickActionsView = ({
+  clicked,
   clickActions,
   onClick,
 }: Props): JSX.Element => {
@@ -24,7 +26,12 @@ export const ClickActionsView = ({
   const hasOnlyOneSection = sections.length === 1;
 
   return (
-    <Container>
+    <Container style={{ width: clicked.plus ? 240 : undefined }}>
+      {clicked.plus && (
+        <Text mb="sm" weight="bold">
+          Create a custom column
+        </Text>
+      )}
       {sections.map(([key, actions]) => {
         const sectionTitle = getSectionTitle(key, actions);
         const contentDirection = getSectionContentDirection(key, actions);

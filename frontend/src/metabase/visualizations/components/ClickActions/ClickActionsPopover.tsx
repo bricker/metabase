@@ -178,6 +178,7 @@ export class ClickActionsPopover extends Component<
             popover
           ) : (
             <ClickActionsView
+              clicked={clicked}
               clickActions={clickActions}
               onClick={this.handleClickAction}
             />
