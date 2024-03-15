@@ -12,6 +12,8 @@ import { useAsync } from "react-use";
 import { c, t } from "ttag";
 import _ from "underscore";
 
+// BUG: the confirmation modal is no longer working. time to add some tests so i can catch regressions like this!
+
 import { useDatabaseListQuery } from "metabase/common/hooks";
 import { LeaveConfirmationModalContent } from "metabase/components/LeaveConfirmationModal";
 import LoadingAndErrorWrapper from "metabase/components/LoadingAndErrorWrapper";
