@@ -26,6 +26,7 @@ import {
 import { color } from "metabase/lib/colors";
 import { PLUGIN_CACHING } from "metabase/plugins";
 import { CacheConfigApi } from "metabase/services";
+import type { IconName } from "metabase/ui";
 import {
   Box,
   Button,
@@ -54,6 +55,12 @@ import { getShortStrategyLabel, isValidStrategy, Strategies } from "../types";
 import { strategyValidationSchema } from "../validation";
 
 import { Chip, Panel, TabWrapper } from "./StrategyEditorForDatabases.styled";
+
+type SafelyUpdateTargetId = (
+  newTargetId: ModelId | null,
+  isFormDirty: boolean,
+  callback?: () => void,
+) => void;
 
 export const StrategyEditorForDatabases = ({
   tabsRef,
@@ -149,19 +156,24 @@ export const StrategyEditorForDatabases = ({
 
   const onConfirmDiscardChanges = useRef<() => void>(() => null);
 
-  const safelyUpdateTargetId = (
-    newTargetId: ModelId | null,
-    callback: () => void = () => null,
+  const safelyUpdateTargetId: SafelyUpdateTargetId = (
+    newTargetId,
+    isFormDirty,
+    callback = () => null,
   ) => {
     if (targetId === newTargetId) {
       return;
     }
-    // TODO: if the form is dirty, prompt the user to confirm discarding their changes
-    setShowCancelEditWarning(true);
-    onConfirmDiscardChanges.current = () => {
+    const proceed = () => {
       setTargetId(newTargetId);
       callback();
     };
+    if (isFormDirty) {
+      setShowCancelEditWarning(true);
+      onConfirmDiscardChanges.current = proceed;
+    } else {
+      proceed();
+    }
   };
 
   const rootStrategy = savedConfigs.get("root")?.strategy ?? {
@@ -426,54 +438,13 @@ export const StrategyEditorForDatabases = ({
                     <Title color="inherit" order={5}>{t`Databases`}</Title>
                   </Flex>
                 </Button>
-                {/* Root strategy chip */}
-                <Chip
-                  leftIcon={
-                    rootStrategyIconName ? (
-                      <FixedSizeIcon name={rootStrategyIconName} />
-                    ) : undefined
-                  }
-                  styles={{
-                    inner: {
-                      display: "flex",
-                      flexFlow: "row nowrap",
-                      justifyContent: "flex-start",
-                      flex: 1,
-                    },
-                    label: {
-                      flex: 1,
-                      display: "flex",
-                      flexFlow: "row nowrap",
-                    },
-                  }}
-                  pt="0.25rem"
-                  pb="0.25rem"
-                  style={{
-                    paddingInlineStart: rootStrategyIconName
-                      ? "0.5rem"
-                      : ".65rem",
-                    paddingInlineEnd: "0.5rem",
-                  }}
-                  lh="1.5rem"
-                  w="100%"
-                  rightIcon={
-                    <FixedSizeIcon
-                      name="ellipsis"
-                      style={{ paddingInlineEnd: "2px" }}
-                    />
-                  }
-                  variant={targetId === "root" ? "filled" : "white"}
-                  onClick={() => {
-                    if (targetId === "root") {
-                      return;
-                    }
-                    safelyUpdateTargetId("root", () => {
-                      setShouldShowDBList(false);
-                    });
-                  }}
-                >
-                  {getShortStrategyLabel(rootStrategy)}
-                </Chip>
+                <RootStrategyChip
+                  rootStrategy={rootStrategy}
+                  rootStrategyIconName={rootStrategyIconName}
+                  targetId={targetId}
+                  safelyUpdateTargetId={safelyUpdateTargetId}
+                  setShouldShowDBList={setShouldShowDBList}
+                />
               </Panel>
               {shouldShowDBList && (
                 <Panel
@@ -492,6 +463,7 @@ export const StrategyEditorForDatabases = ({
                       savedConfigs={savedConfigs}
                       targetId={targetId}
                       safelyUpdateTargetId={safelyUpdateTargetId}
+                      selectedStrategy={selectedStrategy}
                     />
                   ))}
                 </Panel>
@@ -631,11 +603,13 @@ export const DatabaseWidget = ({
   savedConfigs,
   targetId,
   safelyUpdateTargetId,
+  selectedStrategy,
 }: {
   db: Database;
   targetId: ModelId | null;
   savedConfigs: GetConfigByModelId;
-  safelyUpdateTargetId: (newTargetId: ModelId | null) => void;
+  safelyUpdateTargetId: SafelyUpdateTargetId;
+  selectedStrategy?: Strat;
 }) => {
   const dbConfig = savedConfigs.get(db.id);
   const rootStrategy = savedConfigs.get("root")?.strategy;
@@ -646,6 +620,10 @@ export const DatabaseWidget = ({
     throw new Error(t`Invalid strategy "${JSON.stringify(strategyForDB)}"`);
   }
   const isBeingEdited = targetId === db.id;
+  const isFormDirty =
+    useFormikContext().dirty ||
+    savedDBStrategy?.type !== selectedStrategy?.type;
+
   return (
     <Box w="100%" fw="bold" mb="1rem" p="1rem">
       <Stack spacing="sm">
@@ -665,7 +643,7 @@ export const DatabaseWidget = ({
               if (targetId === db.id) {
                 return;
               }
-              safelyUpdateTargetId(db.id);
+              safelyUpdateTargetId(db.id, isFormDirty);
             }}
             variant={isBeingEdited ? "filled" : "white"}
             ml="auto"
@@ -769,5 +747,65 @@ export const PositiveNumberInput = ({ fieldName }: { fieldName: string }) => {
       }}
       autoComplete="off"
     />
+  );
+};
+
+const RootStrategyChip = ({
+  rootStrategy,
+  rootStrategyIconName,
+  targetId,
+  safelyUpdateTargetId,
+  setShouldShowDBList,
+}: {
+  rootStrategy: Strat;
+  rootStrategyIconName: IconName | undefined;
+  targetId: ModelId | null;
+  safelyUpdateTargetId: SafelyUpdateTargetId;
+  setShouldShowDBList: (isVisible: boolean) => void;
+}) => {
+  const isFormDirty = useFormikContext().dirty;
+  return (
+    <Chip
+      leftIcon={
+        rootStrategyIconName ? (
+          <FixedSizeIcon name={rootStrategyIconName} />
+        ) : undefined
+      }
+      styles={{
+        inner: {
+          display: "flex",
+          flexFlow: "row nowrap",
+          justifyContent: "flex-start",
+          flex: 1,
+        },
+        label: {
+          flex: 1,
+          display: "flex",
+          flexFlow: "row nowrap",
+        },
+      }}
+      pt="0.25rem"
+      pb="0.25rem"
+      style={{
+        paddingInlineStart: rootStrategyIconName ? "0.5rem" : ".65rem",
+        paddingInlineEnd: "0.5rem",
+      }}
+      lh="1.5rem"
+      w="100%"
+      rightIcon={
+        <FixedSizeIcon name="ellipsis" style={{ paddingInlineEnd: "2px" }} />
+      }
+      variant={targetId === "root" ? "filled" : "white"}
+      onClick={() => {
+        if (targetId === "root") {
+          return;
+        }
+        safelyUpdateTargetId("root", isFormDirty, () => {
+          setShouldShowDBList(false);
+        });
+      }}
+    >
+      {getShortStrategyLabel(rootStrategy)}
+    </Chip>
   );
 };
