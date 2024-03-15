@@ -40,7 +40,6 @@ import {
 } from "metabase/ui";
 import type Database from "metabase-lib/metadata/Database";
 
-import type { DefaultsMap } from "../hooks/useDefaults";
 import { useStrategyDefaults } from "../hooks/useDefaults";
 import { useRequests } from "../hooks/useRequests";
 import type {
@@ -282,6 +281,25 @@ export const StrategyEditorForDatabases = ({
     [],
   );
 
+  const savedStrategyType = savedStrategy?.type ?? "inherit";
+
+  /** The strategy displayed in the form. It might not be saved yet. */
+  const [selectedStrategyType, setSelectedStrategyType] =
+    useState<StrategyType>(savedStrategyType);
+
+  useEffect(() => {
+    setSelectedStrategyType(savedStrategyType);
+  }, [savedStrategyType, targetId]);
+
+  const defaultsForCurrentTargetAndStrategy = targetId
+    ? defaults?.get(targetId)?.[selectedStrategyType]
+    : null;
+
+  const selectedStrategy = {
+    ...defaultsForCurrentTargetAndStrategy,
+    type: selectedStrategyType,
+  } as Strat;
+
   const showEditor = targetId !== null;
 
   const saveStrategy = (newStrategyValues: Partial<Strat> | null) => {
@@ -332,182 +350,6 @@ export const StrategyEditorForDatabases = ({
 
   const rootStrategyIconName = Strategies[rootStrategy.type].iconName;
 
-  return (
-    <TabWrapper role="region" aria-label="Data caching settings">
-      <Text component="aside" lh="1rem" maw="32rem" mb="1.5rem">
-        {PLUGIN_CACHING.explanation}
-      </Text>
-      <Modal isOpen={showCancelEditWarning}>
-        <LeaveConfirmationModalContent
-          onAction={() => {
-            onConfirmDiscardChanges.current();
-          }}
-          onClose={() => setShowCancelEditWarning(false)}
-        />
-      </Modal>
-      <Grid
-        style={{
-          display: "grid",
-          gridTemplateColumns: "1fr 1fr 1fr",
-          overflow: "hidden",
-        }}
-        w="100%"
-        mb="1rem"
-      >
-        {!canOnlyConfigureRootStrategy && (
-          <>
-            {/* Root strategy */}
-            <Panel
-              role="group"
-              style={{ backgroundColor: color("bg-light"), zIndex: 3 }}
-            >
-              <Button
-                variant="subtle"
-                p=".25rem .5rem"
-                fw="bold"
-                mb=".5rem"
-                lh="1.5rem"
-                rightIcon={<FixedSizeIcon name="chevronright" />}
-                styles={{
-                  root: {
-                    backgroundColor: shouldShowDBList
-                      ? color("bg-medium")
-                      : "transparent",
-                    "&:hover": {
-                      backgroundColor: shouldShowDBList
-                        ? color("bg-medium")
-                        : "transparent",
-                    },
-                  },
-                  inner: {
-                    justifyContent: "space-between",
-                  },
-                }}
-                onClick={() => {
-                  if (!shouldShowDBList) {
-                    setShouldShowDBList(isVisible => !isVisible);
-                  }
-                }}
-              >
-                <Flex gap="0.5rem" w="100%" align="center">
-                  <FixedSizeIcon name="database" />
-                  <Title color="inherit" order={5}>{t`Databases`}</Title>
-                </Flex>
-              </Button>
-              {/* Root strategy chip */}
-              <Chip
-                leftIcon={
-                  rootStrategyIconName ? (
-                    <FixedSizeIcon name={rootStrategyIconName} />
-                  ) : undefined
-                }
-                styles={{
-                  inner: {
-                    display: "flex",
-                    flexFlow: "row nowrap",
-                    justifyContent: "flex-start",
-                    flex: 1,
-                  },
-                  label: {
-                    flex: 1,
-                    display: "flex",
-                    flexFlow: "row nowrap",
-                  },
-                }}
-                pt="0.25rem"
-                pb="0.25rem"
-                style={{
-                  paddingInlineStart: rootStrategyIconName
-                    ? "0.5rem"
-                    : ".65rem",
-                  paddingInlineEnd: "0.5rem",
-                }}
-                lh="1.5rem"
-                w="100%"
-                rightIcon={
-                  <FixedSizeIcon
-                    name="ellipsis"
-                    style={{ paddingInlineEnd: "2px" }}
-                  />
-                }
-                variant={targetId === "root" ? "filled" : "white"}
-                onClick={() => {
-                  if (targetId === "root") {
-                    return;
-                  }
-                  safelyUpdateTargetId("root", () => {
-                    setShouldShowDBList(false);
-                  });
-                }}
-              >
-                {getShortStrategyLabel(rootStrategy)}
-              </Chip>
-            </Panel>
-            {shouldShowDBList && (
-              <Panel
-                $animate
-                role="group"
-                style={{
-                  borderStartEndRadius: 0,
-                  borderEndEndRadius: 0,
-                  zIndex: 2,
-                }}
-              >
-                {databases?.map(db => (
-                  <DatabaseWidget
-                    db={db}
-                    key={db.id.toString()}
-                    savedConfigs={savedConfigs}
-                    targetId={targetId}
-                    safelyUpdateTargetId={safelyUpdateTargetId}
-                  />
-                ))}
-              </Panel>
-            )}
-          </>
-        )}
-        {showEditor && (
-          <Editor
-            savedStrategy={savedStrategy}
-            targetId={targetId}
-            saveStrategy={saveStrategy}
-            defaults={defaults}
-          />
-        )}
-      </Grid>
-    </TabWrapper>
-  );
-};
-
-export const Editor = ({
-  savedStrategy,
-  targetId,
-  saveStrategy,
-  defaults,
-}: {
-  savedStrategy?: Strat;
-  targetId: ModelId;
-  saveStrategy: (newStrategy: Partial<Strat> | null) => void;
-  defaults: DefaultsMap | null;
-}) => {
-  const savedStrategyType = savedStrategy?.type ?? "inherit";
-
-  /** The strategy displayed in the form. It might not be saved yet. */
-  const [selectedStrategyType, setSelectedStrategyType] =
-    useState<StrategyType>(savedStrategyType);
-
-  useEffect(() => {
-    setSelectedStrategyType(savedStrategyType);
-  }, [savedStrategyType, targetId]);
-
-  const defaultsForCurrentTargetAndStrategy =
-    defaults?.get(targetId)?.[selectedStrategyType];
-
-  const selectedStrategy = {
-    ...defaultsForCurrentTargetAndStrategy,
-    type: selectedStrategyType,
-  } as Strat;
-
   const handleFormSubmit = (values: Partial<Strat>) => {
     saveStrategy(
       values.type === "inherit"
@@ -517,57 +359,216 @@ export const Editor = ({
   };
 
   return (
-    <Panel style={{ zIndex: 1 }} $animate>
-      <FormProvider<Strat>
-        initialValues={selectedStrategy}
-        validationSchema={strategyValidationSchema}
-        onSubmit={handleFormSubmit}
-        enableReinitialize={true}
-      >
-        <Form
+    <FormProvider<Strat>
+      initialValues={selectedStrategy}
+      validationSchema={strategyValidationSchema}
+      onSubmit={handleFormSubmit}
+      enableReinitialize={true}
+    >
+      <TabWrapper role="region" aria-label="Data caching settings">
+        <Text component="aside" lh="1rem" maw="32rem" mb="1.5rem">
+          {PLUGIN_CACHING.explanation}
+        </Text>
+        <Modal isOpen={showCancelEditWarning}>
+          <LeaveConfirmationModalContent
+            onAction={() => {
+              onConfirmDiscardChanges.current();
+            }}
+            onClose={() => setShowCancelEditWarning(false)}
+          />
+        </Modal>
+        <Grid
           style={{
-            display: "flex",
-            flexDirection: "column",
-            justifyContent: "space-between",
-            height: "100%",
+            display: "grid",
+            gridTemplateColumns: "1fr 1fr 1fr",
+            overflow: "hidden",
           }}
+          w="100%"
+          mb="1rem"
         >
-          <Stack spacing="xl">
-            <StrategySelector
+          {!canOnlyConfigureRootStrategy && (
+            <>
+              {/* Root strategy */}
+              <Panel
+                role="group"
+                style={{ backgroundColor: color("bg-light"), zIndex: 3 }}
+              >
+                <Button
+                  variant="subtle"
+                  p=".25rem .5rem"
+                  fw="bold"
+                  mb=".5rem"
+                  lh="1.5rem"
+                  rightIcon={<FixedSizeIcon name="chevronright" />}
+                  styles={{
+                    root: {
+                      backgroundColor: shouldShowDBList
+                        ? color("bg-medium")
+                        : "transparent",
+                      "&:hover": {
+                        backgroundColor: shouldShowDBList
+                          ? color("bg-medium")
+                          : "transparent",
+                      },
+                    },
+                    inner: {
+                      justifyContent: "space-between",
+                    },
+                  }}
+                  onClick={() => {
+                    if (!shouldShowDBList) {
+                      setShouldShowDBList(isVisible => !isVisible);
+                    }
+                  }}
+                >
+                  <Flex gap="0.5rem" w="100%" align="center">
+                    <FixedSizeIcon name="database" />
+                    <Title color="inherit" order={5}>{t`Databases`}</Title>
+                  </Flex>
+                </Button>
+                {/* Root strategy chip */}
+                <Chip
+                  leftIcon={
+                    rootStrategyIconName ? (
+                      <FixedSizeIcon name={rootStrategyIconName} />
+                    ) : undefined
+                  }
+                  styles={{
+                    inner: {
+                      display: "flex",
+                      flexFlow: "row nowrap",
+                      justifyContent: "flex-start",
+                      flex: 1,
+                    },
+                    label: {
+                      flex: 1,
+                      display: "flex",
+                      flexFlow: "row nowrap",
+                    },
+                  }}
+                  pt="0.25rem"
+                  pb="0.25rem"
+                  style={{
+                    paddingInlineStart: rootStrategyIconName
+                      ? "0.5rem"
+                      : ".65rem",
+                    paddingInlineEnd: "0.5rem",
+                  }}
+                  lh="1.5rem"
+                  w="100%"
+                  rightIcon={
+                    <FixedSizeIcon
+                      name="ellipsis"
+                      style={{ paddingInlineEnd: "2px" }}
+                    />
+                  }
+                  variant={targetId === "root" ? "filled" : "white"}
+                  onClick={() => {
+                    if (targetId === "root") {
+                      return;
+                    }
+                    safelyUpdateTargetId("root", () => {
+                      setShouldShowDBList(false);
+                    });
+                  }}
+                >
+                  {getShortStrategyLabel(rootStrategy)}
+                </Chip>
+              </Panel>
+              {shouldShowDBList && (
+                <Panel
+                  $animate
+                  role="group"
+                  style={{
+                    borderStartEndRadius: 0,
+                    borderEndEndRadius: 0,
+                    zIndex: 2,
+                  }}
+                >
+                  {databases?.map(db => (
+                    <DatabaseWidget
+                      db={db}
+                      key={db.id.toString()}
+                      savedConfigs={savedConfigs}
+                      targetId={targetId}
+                      safelyUpdateTargetId={safelyUpdateTargetId}
+                    />
+                  ))}
+                </Panel>
+              )}
+            </>
+          )}
+          {showEditor && (
+            <Editor
+              selectedStrategy={selectedStrategy}
+              setSelectedStrategyType={setSelectedStrategyType}
+              savedStrategy={savedStrategy}
               targetId={targetId}
-              savedStrategy={selectedStrategy}
-              setSelectedStrategy={setSelectedStrategyType}
             />
-            {selectedStrategyType === "ttl" && (
-              <>
-                <section>
-                  <Title order={4}>{t`Minimum query duration`}</Title>
-                  <p>
-                    {t`Metabase will cache all saved questions with an average query execution time longer than this many seconds:`}
-                  </p>
-                  <PositiveNumberInput fieldName="min_duration" />
-                </section>
-                <section>
-                  <Title
-                    order={4}
-                  >{t`Cache time-to-live (TTL) multiplier`}</Title>
-                  <p>
-                    {t`To determine how long each saved question's cached result should stick around, we take the query's average execution time and multiply that by whatever you input here. So if a query takes on average 2 minutes to run, and you input 10 for your multiplier, its cache entry will persist for 20 minutes.`}
-                  </p>
-                  <PositiveNumberInput fieldName="multiplier" />
-                </section>
-              </>
-            )}
-            {selectedStrategyType === "duration" && (
+          )}
+        </Grid>
+      </TabWrapper>
+    </FormProvider>
+  );
+};
+
+export const Editor = ({
+  selectedStrategy,
+  setSelectedStrategyType,
+  savedStrategy,
+  targetId,
+}: {
+  selectedStrategy: Strat;
+  setSelectedStrategyType: Dispatch<SetStateAction<StrategyType>>;
+  savedStrategy?: Strat;
+  targetId: ModelId;
+}) => {
+  return (
+    <Panel style={{ zIndex: 1 }} $animate>
+      <Form
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          justifyContent: "space-between",
+          height: "100%",
+        }}
+      >
+        <Stack spacing="xl">
+          <StrategySelector
+            targetId={targetId}
+            savedStrategy={selectedStrategy}
+            setSelectedStrategy={setSelectedStrategyType}
+          />
+          {selectedStrategy.type === "ttl" && (
+            <>
+              <section>
+                <Title order={4}>{t`Minimum query duration`}</Title>
+                <p>
+                  {t`Metabase will cache all saved questions with an average query execution time longer than this many seconds:`}
+                </p>
+                <PositiveNumberInput fieldName="min_duration" />
+              </section>
               <section>
                 <Title
                   order={4}
-                  mb=".5rem"
-                >{t`Cache result for this many hours`}</Title>
-                <PositiveNumberInput fieldName="duration" />
+                >{t`Cache time-to-live (TTL) multiplier`}</Title>
+                <p>
+                  {t`To determine how long each saved question's cached result should stick around, we take the query's average execution time and multiply that by whatever you input here. So if a query takes on average 2 minutes to run, and you input 10 for your multiplier, its cache entry will persist for 20 minutes.`}
+                </p>
+                <PositiveNumberInput fieldName="multiplier" />
               </section>
-            )}
-            {/*
+            </>
+          )}
+          {selectedStrategy.type === "duration" && (
+            <section>
+              <Title
+                order={4}
+                mb=".5rem"
+              >{t`Cache result for this many hours`}</Title>
+              <PositiveNumberInput fieldName="duration" />
+            </section>
+          )}
+          {/*
               {selectedStrategy === "schedule" && (
                   <section>
                     <Title order={3}>{t`Schedule`}</Title>
@@ -578,13 +579,12 @@ export const Editor = ({
                   </section>
               )}
                 */}
-          </Stack>
-          <FormButtons
-            savedStrategy={savedStrategy}
-            selectedStrategy={selectedStrategy}
-          />
-        </Form>
-      </FormProvider>
+        </Stack>
+        <FormButtons
+          savedStrategy={savedStrategy}
+          selectedStrategy={selectedStrategy}
+        />
+      </Form>
       {/*
           <StrategyConfig />
               Add later
