@@ -702,7 +702,15 @@ class TableInteractive extends Component {
     const column = cols[columnIndex];
 
     const columnTitle = getColumnTitle(columnIndex);
-    const clicked = this.getHeaderClickedObject(data, columnIndex, isPivoted);
+    const createdAtIndex = cols.findIndex(
+      col => col.display_name === "Created At",
+    );
+    const clicked = plus
+      ? {
+          ...this.getHeaderClickedObject(data, createdAtIndex, isPivoted),
+          plus: true,
+        }
+      : this.getHeaderClickedObject(data, columnIndex, isPivoted);
     const isDraggable = !isPivoted;
     const isDragging = dragColIndex === columnIndex;
     const isClickable = this.visualizationIsClickable(clicked);
@@ -797,7 +805,10 @@ class TableInteractive extends Component {
             // only use the onClick if not draggable since it's also handled in Draggable's onStop
             isClickable && !isDraggable
               ? e => {
-                  this.onVisualizationClick(clicked, e.currentTarget);
+                  this.onVisualizationClick(
+                    { ...clicked, plus: true },
+                    e.currentTarget,
+                  );
                 }
               : undefined
           }

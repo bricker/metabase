@@ -23,7 +23,8 @@ export const ColumnFormattingAction: LegacyDrill = ({ question, clicked }) => {
     clicked.value !== undefined ||
     !clicked.column ||
     clicked?.extraData?.isRawTable ||
-    !isEditable
+    !isEditable ||
+    clicked.plus
   ) {
     return [];
   }

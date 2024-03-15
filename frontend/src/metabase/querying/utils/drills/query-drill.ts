@@ -24,7 +24,17 @@ export function queryDrill(
     clicked.dimensions,
   ).filter(drill => {
     const info = Lib.displayInfo(query, stageIndex, drill);
-    return !EXCLUDED_DRILLS.includes(info.type);
+
+    if (clicked.plus) {
+      return EXCLUDED_DRILLS.includes(info.type);
+    } else {
+      return !EXCLUDED_DRILLS.includes(info.type);
+    }
+  });
+
+  const extractDrill = drills.find(drill => {
+    const info = Lib.displayInfo(query, stageIndex, drill);
+    return info.type === "drill-thru/column-extract";
   });
 
   const applyDrill = (drill: Lib.DrillThru, ...args: unknown[]) => {
@@ -32,8 +42,14 @@ export function queryDrill(
     return question.setQuery(newQuery);
   };
 
-  return drills.flatMap(drill => {
-    const drillInfo = Lib.displayInfo(query, stageIndex, drill);
+  const alldrills = [...drills, extractDrill];
+  return alldrills.filter(Boolean).flatMap((drill, index) => {
+    const drillInfo = Lib.displayInfo(
+      query,
+      stageIndex,
+      drill,
+      clicked.plus && drill === extractDrill && index === alldrills.length - 1,
+    );
     const drillHandler = DRILLS[drillInfo.type];
     return drillHandler({
       question,

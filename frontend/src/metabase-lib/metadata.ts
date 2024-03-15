@@ -149,8 +149,8 @@ export const displayInfo: typeof DisplayInfoFn = (...args) => {
   const result = ML.display_info(...args);
 
   // TODO: remove this mock
-  if (result.displayName?.startsWith("Extract day, month")) {
-    const [query, stageIndex] = args;
+  const [query, stageIndex, _drill, plus] = args;
+  if (plus && result.displayName?.startsWith("Extract day, month")) {
     const columns = visibleColumns(query, stageIndex);
     const createdAtColumn = columns.find(column => {
       return (
