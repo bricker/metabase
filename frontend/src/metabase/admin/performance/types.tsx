@@ -139,7 +139,7 @@ export interface Config {
 }
 
 export const isValidStrategy = (x: unknown): x is Strat => {
-  return strategyValidationSchema.validateSync(x);
+  return strategyValidationSchema.isValidSync(x);
 };
 
 export enum TabId {

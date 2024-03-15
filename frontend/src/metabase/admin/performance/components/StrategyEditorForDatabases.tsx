@@ -20,7 +20,6 @@ import {
   Form,
   FormProvider,
   FormRadioGroup,
-  FormSubmitButton,
   FormTextInput,
 } from "metabase/forms";
 import { color } from "metabase/lib/colors";
@@ -28,11 +27,13 @@ import { PLUGIN_CACHING } from "metabase/plugins";
 import { CacheConfigApi } from "metabase/services";
 import type { IconName } from "metabase/ui";
 import {
+  Loader,
   Box,
   Button,
   FixedSizeIcon,
   Flex,
   Grid,
+  Group,
   Radio,
   Stack,
   Text,
@@ -195,6 +196,8 @@ export const StrategyEditorForDatabases = ({
 
   const { debouncedRequest, showSuccessToast, showErrorToast } = useRequests();
 
+  const [isRequestPending, setIsRequestPending] = useState(false);
+
   useEffect(() => {
     if (canOnlyConfigureRootStrategy) {
       setTargetId("root");
@@ -213,9 +216,11 @@ export const StrategyEditorForDatabases = ({
 
       const configBeforeChange = savedConfigs.get(model_id);
       const onSuccess = async () => {
+        setIsRequestPending(false);
         await showSuccessToast();
       };
       const onError = async () => {
+        setIsRequestPending(false);
         await showErrorToast();
         // Revert to earlier state
         setConfigs(
@@ -234,6 +239,8 @@ export const StrategyEditorForDatabases = ({
           strategy: newStrategy,
         };
         setConfigs([...otherConfigs, newConfig]);
+        // the bug is that when i click the databasewidget, configs has not yet been updated, so the savedDBStrategy is stale, and so it doesn't match the selectedStrategy, and so the form is considered dirty. but why do I even need to do this additional check?
+        setIsRequestPending(true);
         debouncedRequest(
           CacheConfigApi.update,
           newConfig,
@@ -303,7 +310,8 @@ export const StrategyEditorForDatabases = ({
 
   useEffect(() => {
     setSelectedStrategyType(savedStrategyType);
-  }, [savedStrategyType, targetId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- We don't want to update the selectedStrategyType when savedStrategyType changes. If the form submit fails, then we want to revert the saved strategy without changing the form.
+  }, [targetId]);
 
   const defaultsForCurrentTargetAndStrategy = targetId
     ? defaults?.get(targetId)?.[selectedStrategyType]
@@ -373,8 +381,9 @@ export const StrategyEditorForDatabases = ({
   };
 
   return (
-    <FormProvider<Strat>
-      initialValues={selectedStrategy}
+    <FormProvider<Strat | Record<string, never>>
+      // initialValues={savedStrategy ?? {}}
+      initialValues={selectedStrategy} // Will using selectedStrategy here remove the error bug?
       validationSchema={strategyValidationSchema}
       onSubmit={handleFormSubmit}
       enableReinitialize={true}
@@ -450,7 +459,6 @@ export const StrategyEditorForDatabases = ({
               </Panel>
               {shouldShowDBList && (
                 <Panel
-                  $animate
                   role="group"
                   style={{
                     borderStartEndRadius: 0,
@@ -458,16 +466,17 @@ export const StrategyEditorForDatabases = ({
                     zIndex: 2,
                   }}
                 >
-                  {databases?.map(db => (
-                    <DatabaseWidget
-                      db={db}
-                      key={db.id.toString()}
-                      savedConfigs={savedConfigs}
-                      targetId={targetId}
-                      safelyUpdateTargetId={safelyUpdateTargetId}
-                      selectedStrategy={selectedStrategy}
-                    />
-                  ))}
+                  <Stack spacing="lg">
+                    {databases?.map(db => (
+                      <DatabaseWidget
+                        db={db}
+                        key={db.id.toString()}
+                        savedConfigs={savedConfigs}
+                        targetId={targetId}
+                        safelyUpdateTargetId={safelyUpdateTargetId}
+                      />
+                    ))}
+                  </Stack>
                 </Panel>
               )}
             </>
@@ -478,6 +487,7 @@ export const StrategyEditorForDatabases = ({
               setSelectedStrategyType={setSelectedStrategyType}
               savedStrategy={savedStrategy}
               targetId={targetId}
+              isRequestPending={isRequestPending}
             />
           )}
         </Grid>
@@ -491,27 +501,39 @@ export const Editor = ({
   setSelectedStrategyType,
   savedStrategy,
   targetId,
+  isRequestPending,
 }: {
   selectedStrategy: Strat;
   setSelectedStrategyType: Dispatch<SetStateAction<StrategyType>>;
   savedStrategy?: Strat;
   targetId: ModelId;
+  isRequestPending: boolean;
 }) => {
+  const { setValues, setStatus } = useFormikContext<Strat>();
+
+  useEffect(() => {
+    setValues(selectedStrategy);
+  }, [selectedStrategy, setValues]);
+
+  useEffect(() => {
+    setStatus(null);
+  }, [targetId, setStatus]);
+
   return (
-    <Panel style={{ zIndex: 1 }} $animate>
+    <Panel style={{ zIndex: 1 }}>
       <Form
+        h="100%"
         style={{
           display: "flex",
           flexDirection: "column",
           justifyContent: "space-between",
-          height: "100%",
         }}
       >
         <Stack spacing="xl">
           <StrategySelector
             targetId={targetId}
             savedStrategy={selectedStrategy}
-            setSelectedStrategy={setSelectedStrategyType}
+            setSelectedStrategyType={setSelectedStrategyType}
           />
           {selectedStrategy.type === "ttl" && (
             <>
@@ -557,6 +579,7 @@ export const Editor = ({
         <FormButtons
           savedStrategy={savedStrategy}
           selectedStrategy={selectedStrategy}
+          isRequestPending={isRequestPending}
         />
       </Form>
       {/*
@@ -583,21 +606,34 @@ TODO: I'm not sure this string translates well
 export const FormButtons = ({
   savedStrategy,
   selectedStrategy,
+  isRequestPending,
 }: {
   savedStrategy?: Strat;
   selectedStrategy?: Strat;
+  isRequestPending: boolean;
 }) => {
-  const dirty =
-    useFormikContext().dirty || savedStrategy?.type !== selectedStrategy?.type;
-  if (!dirty) {
+  const formik = useFormikContext();
+  const formHasUnsavedData = !_.isEqual(savedStrategy, selectedStrategy);
+  const dirty = formik.dirty || formHasUnsavedData;
+  if (dirty || isRequestPending) {
+    return (
+      <Group mt="2rem" spacing="md">
+        <Button variant="subtle">{t`Discard changes`}</Button>
+        <Button type="submit" variant="filled">
+          {isRequestPending ? (
+            <Group spacing="sm">
+              <Loader style={{ filter: "brightness(300%)" }} size="xs" />
+              {t`Saving...`}
+            </Group>
+          ) : (
+            t`Save changes`
+          )}
+        </Button>
+      </Group>
+    );
+  } else {
     return null;
   }
-  return (
-    <Box mt="2rem">
-      <Button variant="subtle">{t`Cancel`}</Button>
-      <FormSubmitButton label={t`Save changes`} variant="filled" />
-    </Box>
-  );
 };
 
 export const DatabaseWidget = ({
@@ -605,29 +641,32 @@ export const DatabaseWidget = ({
   savedConfigs,
   targetId,
   safelyUpdateTargetId,
-  selectedStrategy,
 }: {
   db: Database;
   targetId: ModelId | null;
   savedConfigs: GetConfigByModelId;
   safelyUpdateTargetId: SafelyUpdateTargetId;
-  selectedStrategy?: Strat;
 }) => {
   const dbConfig = savedConfigs.get(db.id);
   const rootStrategy = savedConfigs.get("root")?.strategy;
   const savedDBStrategy = dbConfig?.strategy;
+
   const inheritsRootStrategy = savedDBStrategy === undefined;
   const strategyForDB = savedDBStrategy ?? rootStrategy;
   if (!strategyForDB) {
     throw new Error(t`Invalid strategy "${JSON.stringify(strategyForDB)}"`);
   }
   const isBeingEdited = targetId === db.id;
-  const isFormDirty =
-    useFormikContext().dirty ||
-    savedDBStrategy?.type !== selectedStrategy?.type;
+  const isFormDirty = useFormikContext().dirty;
+  //savedDBStrategy?.type !== selectedStrategy?.type;
 
   return (
-    <Box w="100%" fw="bold" mb="1rem" p="1rem">
+    <Box
+      w="100%"
+      p="md"
+      fw="bold"
+      style={{ border: `1px solid ${color("border")}`, borderRadius: ".5rem" }}
+    >
       <Stack spacing="sm">
         <Flex gap="0.5rem" color="text-medium" align="center">
           <FixedSizeIcon name="database" color="inherit" />
@@ -648,7 +687,10 @@ export const DatabaseWidget = ({
               safelyUpdateTargetId(db.id, isFormDirty);
             }}
             variant={isBeingEdited ? "filled" : "white"}
-            ml="auto"
+            style={{
+              // like margin-left but RTL friendly
+              marginInlineStart: "auto",
+            }}
             w="100%"
             p="0.25rem 0.5rem"
             styles={{
@@ -677,11 +719,11 @@ export const DatabaseWidget = ({
 const StrategySelector = ({
   targetId,
   savedStrategy,
-  setSelectedStrategy,
+  setSelectedStrategyType: setSelectedStrategyType,
 }: {
   targetId: ModelId | null;
   savedStrategy?: Strat;
-  setSelectedStrategy: Dispatch<SetStateAction<StrategyType>>;
+  setSelectedStrategyType: Dispatch<SetStateAction<StrategyType>>;
 }) => {
   const radioButtonMapRef = useRef<Map<string | null, HTMLInputElement>>(
     new Map(),
@@ -712,7 +754,7 @@ const StrategySelector = ({
         }
         name="type"
         onChange={(value: string) => {
-          setSelectedStrategy(value as StrategyType);
+          setSelectedStrategyType(value as StrategyType);
         }}
       >
         <Stack mt="md" spacing="md">
@@ -735,6 +777,7 @@ const StrategySelector = ({
 export const PositiveNumberInput = ({ fieldName }: { fieldName: string }) => {
   // NOTE: Known bug: on Firefox, if you type invalid input, the error
   // message will be "Required field" instead of "must be a positive number".
+  // BUG: if you blank out the input and press save, there is no user feedback
   return (
     <FormTextInput
       name={fieldName}

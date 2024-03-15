@@ -7,7 +7,7 @@ import { Button } from "metabase/ui";
 
 type ButtonProps = BaseButtonProps & HTMLAttributes<HTMLButtonElement>;
 
-export const Panel = styled.div<{ $animate?: boolean }>`
+export const Panel = styled.div`
   overflow-y: auto;
   display: flex;
   flex-flow: column nowrap;
@@ -15,7 +15,9 @@ export const Panel = styled.div<{ $animate?: boolean }>`
   background-color: ${color("white")};
   border-style: solid;
   border-color: ${color("border")};
-  border-width: 2px 1px 2px 0;
+  border-block-width: 2px;
+  border-inline-end-width: 1px;
+  border-inline-start-width: 0;
   &:first-child {
     border-inline-start-width: 2px;
     border-start-start-radius: 1rem;
@@ -26,23 +28,7 @@ export const Panel = styled.div<{ $animate?: boolean }>`
     border-start-end-radius: 1rem;
     border-end-end-radius: 1rem;
   }
-  ${props =>
-    props.$animate
-      ? // TODO: Confirm that dollar sign is needed
-        `
-  transform: translateX(-25%);
-  opacity: 0;
-  animation: slide-in 0.35s forwards;
-  @keyframes slide-in {
-    to {
-      transform: translateX(0);
-      opacity: 1;
-    }
-  }
-  `
-      : ""}
 `;
-Panel.defaultProps = { $animate: false };
 
 export const Chip = styled(Button)<{ variant: string } & ButtonProps>`
   cursor: pointer;
