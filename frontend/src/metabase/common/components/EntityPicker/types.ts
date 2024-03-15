@@ -4,6 +4,7 @@ import type {
   SearchListQuery,
   SearchModelType,
   CollectionId,
+  CardId,
 } from "metabase-types/api";
 
 import type { CollectionPickerOptions } from "./components/CollectionPicker";
@@ -34,6 +35,17 @@ export type CollectionPickerItem = Pick<
   "name" | "description" | "can_write" | "model"
 > & {
   id: CollectionId;
+  location?: string | null;
+  effective_location?: string | null;
+  is_personal?: boolean;
+};
+
+export type QuestionPickerItem = Pick<
+  SearchResult,
+  "name" | "description" | "can_write" | "model"
+> & {
+  id: CollectionId | CardId;
+  collection_id?: CollectionId;
   location?: string | null;
   effective_location?: string | null;
   is_personal?: boolean;

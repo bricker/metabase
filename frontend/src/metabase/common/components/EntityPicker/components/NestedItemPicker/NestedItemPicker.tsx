@@ -68,7 +68,7 @@ export function NestedItemPicker<TItem extends TypeWithModel>({
                   selectedItem={selectedItem}
                   options={options}
                   onClick={(item: TItem) => handleClick(item)}
-                  isCurrentLevel={index === path.length - 2}
+                  isCurrentLevel={index === path.length - 2 || !isFolder(level.selectedItem)}
                   isFolder={isFolder}
                 />
               </ErrorBoundary>
