@@ -25,9 +25,8 @@ export const MoveModal = ({
 }: CollectionMoveModalProps) => {
 
   const canMoveCollection = (item: CollectionPickerItem) =>
-    item.can_write &&
     item.id !== initialCollectionId &&
-    !item?.location?.split('/').includes(initialCollectionId as string);
+    !item?.location?.split('/').includes(String(initialCollectionId));
 
   return (
     <CollectionPickerModal
