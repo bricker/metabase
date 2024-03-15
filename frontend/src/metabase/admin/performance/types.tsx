@@ -161,3 +161,9 @@ export type ObjectWithType = {
 };
 
 export const rootConfigLabel = t`Default for all databases`;
+
+export type SafelyUpdateTargetId = (
+  newTargetId: ModelId | null,
+  isFormDirty: boolean,
+  callback?: () => void,
+) => void;

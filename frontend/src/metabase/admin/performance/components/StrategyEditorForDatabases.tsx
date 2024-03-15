@@ -8,8 +8,7 @@ import {
   useState,
 } from "react";
 import { useAsync } from "react-use";
-import { c, t } from "ttag";
-import _ from "underscore";
+import { t } from "ttag";
 
 // BUG: the confirmation modal is no longer working. time to add some tests so i can catch regressions like this!
 
@@ -17,31 +16,20 @@ import { useDatabaseListQuery } from "metabase/common/hooks";
 import { LeaveConfirmationModalContent } from "metabase/components/LeaveConfirmationModal";
 import LoadingAndErrorWrapper from "metabase/components/LoadingAndErrorWrapper";
 import Modal from "metabase/components/Modal";
-import {
-  Form,
-  FormProvider,
-  FormRadioGroup,
-  FormTextInput,
-} from "metabase/forms";
+import { FormProvider } from "metabase/forms";
 import { color } from "metabase/lib/colors";
 import { PLUGIN_CACHING } from "metabase/plugins";
 import { CacheConfigApi } from "metabase/services";
 import type { IconName } from "metabase/ui";
 import {
-  Box,
   Button,
   FixedSizeIcon,
   Flex,
   Grid,
-  Group,
-  Loader,
-  Radio,
   Stack,
   Text,
   Title,
-  Tooltip,
 } from "metabase/ui";
-import type Database from "metabase-lib/metadata/Database";
 
 import { useRequests } from "../hooks/useRequests";
 import type {
@@ -50,18 +38,15 @@ import type {
   GetConfigByModelId,
   Model,
   ModelId,
+  SafelyUpdateTargetId,
   Strat,
 } from "../types";
 import { getShortStrategyLabel, isValidStrategy, Strategies } from "../types";
 import { strategyValidationSchema } from "../validation";
 
+import { DatabaseFormTrigger } from "./DatabaseFormTrigger";
 import { Chip, Panel, TabWrapper } from "./StrategyEditorForDatabases.styled";
-
-type SafelyUpdateTargetId = (
-  newTargetId: ModelId | null,
-  isFormDirty: boolean,
-  callback?: () => void,
-) => void;
+import { StrategyForm } from "./StrategyForm";
 
 export const StrategyEditorForDatabases = ({
   tabsRef,
@@ -439,290 +424,6 @@ export const StrategyEditorForDatabases = ({
         </Grid>
       </TabWrapper>
     </FormProvider>
-  );
-};
-
-export const StrategyForm = ({
-  targetId,
-  isRequestPending,
-}: {
-  targetId: ModelId;
-  isRequestPending: boolean;
-}) => {
-  const { values, setStatus } = useFormikContext<Strat>();
-
-  useEffect(() => {
-    setStatus(null);
-  }, [targetId, setStatus]);
-
-  const selectedStrategyType = values.type;
-
-  return (
-    <Panel style={{ zIndex: 1 }}>
-      <Form
-        h="100%"
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          justifyContent: "space-between",
-        }}
-      >
-        <Stack spacing="xl">
-          <StrategySelector targetId={targetId} />
-          {selectedStrategyType === "ttl" && (
-            <>
-              <section>
-                <Title order={4}>{t`Minimum query duration`}</Title>
-                <p>
-                  {t`Metabase will cache all saved questions with an average query execution time longer than this many seconds:`}
-                </p>
-                <PositiveNumberInput fieldName="min_duration" />
-              </section>
-              <section>
-                <Title
-                  order={4}
-                >{t`Cache time-to-live (TTL) multiplier`}</Title>
-                <p>
-                  {t`To determine how long each saved question's cached result should stick around, we take the query's average execution time and multiply that by whatever you input here. So if a query takes on average 2 minutes to run, and you input 10 for your multiplier, its cache entry will persist for 20 minutes.`}
-                </p>
-                <PositiveNumberInput fieldName="multiplier" />
-              </section>
-            </>
-          )}
-          {selectedStrategyType === "duration" && (
-            <section>
-              <Title
-                order={4}
-                mb=".5rem"
-              >{t`Cache result for this many hours`}</Title>
-              <PositiveNumberInput fieldName="duration" />
-            </section>
-          )}
-          {/*
-              {selectedStrategy === "schedule" && (
-                  <section>
-                    <Title order={3}>{t`Schedule`}</Title>
-                    <p>{t`(explanation goes here)`}</p>
-                    <CronInput
-                      initialValue={savedStrategy.schedule}
-                    />
-                  </section>
-              )}
-                */}
-        </Stack>
-        <FormButtons isRequestPending={isRequestPending} />
-      </Form>
-      {/*
-          <StrategyConfig />
-              Add later
-              <section>
-              <p>
-              {jt`We’ll periodically run ${(
-              <code>select max()</code>
-              )} on the column selected here to check for new results.`}
-              </p>
-              <Select data={columns} />
-TODO: I'm not sure this string translates well
-</section>
-<section>
-<p>{t`Check for new results every...`}</p>
-<Select data={durations} />
-</section>
-            */}
-    </Panel>
-  );
-};
-
-export const FormButtons = ({
-  isRequestPending,
-}: {
-  isRequestPending: boolean;
-}) => {
-  if (useFormikContext().dirty || isRequestPending) {
-    return (
-      <Group mt="2rem" spacing="md">
-        <Button variant="subtle">{t`Discard changes`}</Button>
-        <Button type="submit" variant="filled">
-          {isRequestPending ? (
-            <Group spacing="sm">
-              <Loader style={{ filter: "brightness(300%)" }} size="xs" />
-              {t`Saving...`}
-            </Group>
-          ) : (
-            t`Save changes`
-          )}
-        </Button>
-      </Group>
-    );
-  } else {
-    return null;
-  }
-};
-
-export const DatabaseFormTrigger = ({
-  db,
-  savedConfigs,
-  targetId,
-  safelyUpdateTargetId,
-}: {
-  db: Database;
-  targetId: ModelId | null;
-  savedConfigs: GetConfigByModelId;
-  safelyUpdateTargetId: SafelyUpdateTargetId;
-}) => {
-  const dbConfig = savedConfigs.get(db.id);
-  const rootStrategy = savedConfigs.get("root")?.strategy;
-  const savedDBStrategy = dbConfig?.strategy;
-
-  const inheritsRootStrategy = savedDBStrategy === undefined;
-  const strategyForDB = savedDBStrategy ?? rootStrategy;
-  if (!strategyForDB) {
-    throw new Error(t`Invalid strategy "${JSON.stringify(strategyForDB)}"`);
-  }
-  const isBeingEdited = targetId === db.id;
-
-  const isFormDirty = useFormikContext().dirty;
-
-  // Ryan suggests thinking about the following: keep the form state more local to the form
-  // (so don't lift FormProvider up) and use something like onBeforeUnmount so that the form
-  // handles its own "confirm before closing" logic
-
-  // See if I can unify the two Chip components
-
-  // Use more components rather than having one big JSX
-
-  // Use forms/FormSubmitButton because it has good race condition logic built in
-
-  return (
-    <Box
-      w="100%"
-      p="md"
-      fw="bold"
-      style={{ border: `1px solid ${color("border")}`, borderRadius: ".5rem" }}
-    >
-      <Stack spacing="sm">
-        <Flex gap="0.5rem" color="text-medium" align="center">
-          <FixedSizeIcon name="database" color="inherit" />
-          <Title color="inherit" order={5}>
-            {db.name}
-          </Title>
-        </Flex>
-        <Chip
-          onClick={() => {
-            if (targetId === db.id) {
-              return;
-            }
-            safelyUpdateTargetId(db.id, isFormDirty);
-          }}
-          variant={
-            isBeingEdited
-              ? "filled"
-              : inheritsRootStrategy
-              ? "white"
-              : "outline"
-          }
-          style={{
-            // like margin-left but RTL friendly
-            marginInlineStart: "auto",
-          }}
-          w="100%"
-          p="0.25rem 0.5rem"
-          styles={{
-            inner: { width: "100%", justifyContent: "space-between" },
-          }}
-          rightIcon={<FixedSizeIcon name="ellipsis" />}
-        >
-          <Tooltip
-            position="bottom"
-            disabled={!inheritsRootStrategy}
-            label={t`Inheriting from Databases setting`}
-          >
-            <Flex wrap="nowrap" lh="1.5rem" gap=".5rem">
-              {inheritsRootStrategy
-                ? c(
-                    "This label indicates that a database inherits its behavior from something else",
-                  ).jt`Inherit:${(
-                    <Box opacity={0.6}>
-                      {getShortStrategyLabel(rootStrategy)}
-                    </Box>
-                  )}`
-                : getShortStrategyLabel(strategyForDB)}
-            </Flex>
-          </Tooltip>
-        </Chip>
-      </Stack>
-    </Box>
-  );
-};
-
-const StrategySelector = ({ targetId }: { targetId: ModelId | null }) => {
-  const { values } = useFormikContext<Strat>();
-
-  const radioButtonMapRef = useRef<Map<string | null, HTMLInputElement>>(
-    new Map(),
-  );
-  const radioButtonMap = radioButtonMapRef.current;
-
-  // useEffect(
-  //   () => {
-  //     const strategyType = values.type ?? "inherit";
-  //     if (strategyType) {
-  //       radioButtonMap.get(strategyType)?.focus();
-  //     }
-  //   },
-  //   // We only want to focus the radio button when the targetId changes,
-  //   // not when the strategy changes
-  //   // eslint-disable-next-line react-hooks/exhaustive-deps
-  //   [targetId],
-  // );
-
-  const availableStrategies =
-    targetId === "root" ? _.omit(Strategies, "inherit") : Strategies;
-
-  return (
-    <section>
-      <FormRadioGroup
-        label={
-          <Text lh="1rem">{t`When should cached query results be invalidated?`}</Text>
-        }
-        name="type"
-      >
-        <Stack mt="md" spacing="md">
-          {_.map(availableStrategies, (option, name) => (
-            <Radio
-              ref={(el: HTMLInputElement) => {
-                radioButtonMap.set(name, el);
-              }}
-              value={name}
-              key={name}
-              label={option.label}
-              autoFocus={values.type === name}
-            />
-          ))}
-        </Stack>
-      </FormRadioGroup>
-    </section>
-  );
-};
-
-export const PositiveNumberInput = ({ fieldName }: { fieldName: string }) => {
-  // NOTE: Known bug: on Firefox, if you type invalid input, the error
-  // message will be "Required field" instead of "must be a positive number".
-  // BUG: if you blank out the input and press save, there is no user feedback
-  return (
-    <FormTextInput
-      name={fieldName}
-      type="number"
-      min={1}
-      styles={{
-        input: {
-          // This is like `text-align: right` but it's RTL-friendly
-          textAlign: "end",
-          maxWidth: "3.5rem",
-        },
-      }}
-      autoComplete="off"
-    />
   );
 };
 
