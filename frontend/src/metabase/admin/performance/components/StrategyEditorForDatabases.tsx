@@ -52,8 +52,8 @@ export const StrategyEditorForDatabases = ({
   tabsRef,
   setTabsHeight,
 }: {
-  tabsRef: React.RefObject<HTMLDivElement>;
-  setTabsHeight: (height: number) => void;
+  tabsRef?: React.RefObject<HTMLDivElement>;
+  setTabsHeight?: (height: number) => void;
 }) => {
   const {
     data: unfilteredDatabases = null,
@@ -227,13 +227,13 @@ export const StrategyEditorForDatabases = ({
   // TODO: If this doesn't need to depend on areDatabasesLoading etc then move it up
   useLayoutEffect(() => {
     const handleResize = () => {
-      const tabs = tabsRef.current;
+      const tabs = tabsRef?.current;
       if (!tabs) {
         return;
       }
       const tabsElementTop = tabs.getBoundingClientRect().top;
       const newHeight = window.innerHeight - tabsElementTop - tabs.clientTop;
-      setTabsHeight(newHeight);
+      setTabsHeight?.(newHeight);
     };
     window.addEventListener("resize", handleResize);
     handleResize();
