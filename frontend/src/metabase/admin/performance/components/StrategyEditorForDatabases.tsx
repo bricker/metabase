@@ -146,6 +146,26 @@ export const StrategyEditorForDatabases = ({
 
   const [isRequestPending, setIsRequestPending] = useState(false);
 
+  const [wasRequestRecentlyPending, setWasRequestRecentlyPending] =
+    useState(false);
+
+  useEffect(() => {
+    // Ensure this fires only after isRequestPending becomes false from true
+    if (!isRequestPending) {
+      setWasRequestRecentlyPending(true);
+      const timeout = setTimeout(() => {
+        setWasRequestRecentlyPending(false);
+      }, 2000);
+      return () => {
+        clearTimeout(timeout);
+      };
+    }
+  }, [isRequestPending]);
+
+  useEffect(() => {
+    setWasRequestRecentlyPending(false);
+  }, [targetId]);
+
   useEffect(() => {
     if (canOnlyConfigureRootStrategy) {
       setTargetId("root");
@@ -164,11 +184,9 @@ export const StrategyEditorForDatabases = ({
 
       const onSuccess = async () => {
         setIsRequestPending(false);
-        await showSuccessToast();
       };
       const onError = async () => {
         setIsRequestPending(false);
-        await showErrorToast();
       };
 
       setIsRequestPending(true);
@@ -196,7 +214,7 @@ export const StrategyEditorForDatabases = ({
         );
       }
     },
-    [configs, debouncedRequest, showErrorToast, showSuccessToast],
+    [configs, debouncedRequest],
   );
 
   const setRootStrategy = (newStrategy: Strat) =>
@@ -269,6 +287,38 @@ export const StrategyEditorForDatabases = ({
     }
   };
 
+  const clearDBOverrides = useCallback(() => {
+    const originalConfigs = [...configs];
+    setConfigs(configs => configs.filter(({ model }) => model !== "database"));
+
+    const ids = configs.reduce<ModelId[]>(
+      (acc, config) =>
+        config.model === "database" ? [...acc, config.model_id] : acc,
+      [],
+    );
+
+    if (ids.length === 0) {
+      return;
+    }
+
+    const onSuccess = async () => {
+      await showSuccessToast();
+    };
+
+    const onError = async () => {
+      setConfigs(originalConfigs);
+    };
+
+    // Remove configurations with the collected IDs
+    debouncedRequest(
+      CacheConfigApi.delete,
+      { model_id: ids, model: "database" },
+      { hasBody: true },
+      onSuccess,
+      onError,
+    );
+  }, [configs, setConfigs, debouncedRequest, showErrorToast, showSuccessToast]);
+
   if (errorWhenLoadingConfigs || areConfigsLoading) {
     return showLoadingSpinner ? (
       <LoadingAndErrorWrapper
@@ -297,6 +347,7 @@ export const StrategyEditorForDatabases = ({
 
   return (
     <FormProvider<Strat | Record<string, never>>
+      key={targetId}
       initialValues={savedStrategy ?? { type: "inherit" }}
       validationSchema={strategyValidationSchema}
       onSubmit={handleFormSubmit}
@@ -308,9 +359,7 @@ export const StrategyEditorForDatabases = ({
         </Text>
         <Modal isOpen={showCancelEditWarning}>
           <LeaveConfirmationModalContent
-            onAction={() => {
-              onConfirmDiscardChanges.current();
-            }}
+            onAction={() => onConfirmDiscardChanges.current()}
             onClose={() => setShowCancelEditWarning(false)}
           />
         </Modal>
@@ -321,50 +370,48 @@ export const StrategyEditorForDatabases = ({
             overflow: "hidden",
           }}
           w="100%"
-          mb="1rem"
           mx="0"
+          mb="1rem"
         >
           {!canOnlyConfigureRootStrategy && (
-            <>
-              {/* Root strategy */}
-              <Panel
-                role="group"
-                style={{ backgroundColor: color("bg-light"), zIndex: 3 }}
+            <Panel role="group" style={{ backgroundColor: color("bg-light") }}>
+              <Stack
+                p="lg"
+                spacing="lg"
+                style={{ borderBottom: `1px solid ${color("border")}` }}
               >
-                <Stack
-                  p="lg"
-                  spacing="lg"
-                  style={{ borderBottom: `1px solid ${color("border")}` }}
-                >
+                <DatabaseFormTrigger
+                  forId="root"
+                  title={t`Default policy`}
+                  savedConfigs={savedConfigs}
+                  targetId={targetId}
+                  safelyUpdateTargetId={safelyUpdateTargetId}
+                />
+              </Stack>
+              <Stack p="lg" spacing="lg">
+                {databases?.map(db => (
                   <DatabaseFormTrigger
-                    forId="root"
-                    title={t`Default policy`}
+                    forId={db.id}
+                    title={db.name}
+                    key={db.id.toString()}
                     savedConfigs={savedConfigs}
                     targetId={targetId}
                     safelyUpdateTargetId={safelyUpdateTargetId}
                   />
-                </Stack>
-                <Stack p="lg" spacing="lg">
-                  {databases?.map(db => (
-                    <DatabaseFormTrigger
-                      forId={db.id}
-                      title={db.name}
-                      key={db.id.toString()}
-                      savedConfigs={savedConfigs}
-                      targetId={targetId}
-                      safelyUpdateTargetId={safelyUpdateTargetId}
-                    />
-                  ))}
-                </Stack>
-              </Panel>
-            </>
+                ))}
+                {t`Reset all to default`}
+              </Stack>
+            </Panel>
           )}
-          {showStrategyForm && (
-            <StrategyForm
-              targetId={targetId}
-              isRequestPending={isRequestPending}
-            />
-          )}
+          <Panel>
+            {showStrategyForm && (
+              <StrategyForm
+                targetId={targetId}
+                isRequestPending={isRequestPending}
+                wasRequestRecentlyPending={wasRequestRecentlyPending}
+              />
+            )}
+          </Panel>
         </Grid>
       </TabWrapper>
     </FormProvider>

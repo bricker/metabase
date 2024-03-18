@@ -14,15 +14,9 @@ import { getShortStrategyLabel } from "../types";
 
 import { Chip } from "./StrategyEditorForDatabases.styled";
 
-// BUG: the confirmation modal is no longer working. time to add some tests so i can catch regressions like this!
-
 //   // Ryan suggests thinking about the following: keep the form state more local to the form
 //   // (so don't lift FormProvider up) and use something like onBeforeUnmount so that the form
 //   // handles its own "confirm before closing" logic
-
-//   // See if I can unify the two Chip components
-
-//   // Use more components rather than having one big JSX
 
 //   // Use forms/FormSubmitButton because it has good race condition logic built in
 
