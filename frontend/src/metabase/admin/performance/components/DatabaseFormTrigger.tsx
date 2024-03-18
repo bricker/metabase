@@ -146,7 +146,10 @@ export const DatabaseFormTrigger = ({
       style={{ border: `1px solid ${color("border")}`, borderRadius: ".5rem" }}
     >
       <Flex gap="0.5rem" color="text-medium" align="center">
-        <FixedSizeIcon name="database" color="inherit" />
+        <FixedSizeIcon
+          name={forId === "root" ? "star" : "database"}
+          color="inherit"
+        />
         <Title color="inherit" order={5}>
           {title}
         </Title>
