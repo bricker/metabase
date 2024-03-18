@@ -23,7 +23,7 @@ import { FormProvider } from "metabase/forms";
 import { color } from "metabase/lib/colors";
 import { PLUGIN_CACHING } from "metabase/plugins";
 import { CacheConfigApi } from "metabase/services";
-import { Grid, Stack, Text } from "metabase/ui";
+import { Button, Grid, Stack, Text } from "metabase/ui";
 
 import { useRequests } from "../hooks/useRequests";
 import type {
@@ -142,7 +142,7 @@ export const StrategyEditorForDatabases = ({
   const targetConfig = savedConfigs.get(targetId);
   const savedStrategy = targetConfig?.strategy;
 
-  const { debouncedRequest, showSuccessToast, showErrorToast } = useRequests();
+  const { showSuccessToast, showErrorToast } = useRequests();
 
   const [isRequestPending, setIsRequestPending] = useState(false);
 
@@ -173,7 +173,7 @@ export const StrategyEditorForDatabases = ({
   }, [canOnlyConfigureRootStrategy]);
 
   const setStrategy = useCallback(
-    (model: Model, model_id: number, newStrategy: Strat | null) => {
+    async (model: Model, model_id: number, newStrategy: Strat | null) => {
       const baseConfig: Pick<Config, "model" | "model_id"> = {
         model,
         model_id,
@@ -196,31 +196,21 @@ export const StrategyEditorForDatabases = ({
           strategy: newStrategy,
         };
         setConfigs([...otherConfigs, newConfig]);
-        debouncedRequest(
-          CacheConfigApi.update,
-          newConfig,
-          {},
-          onSuccess,
-          onError,
-        );
+        await CacheConfigApi.update(newConfig).then(onSuccess).catch(onError);
       } else {
         setConfigs(otherConfigs);
-        debouncedRequest(
-          CacheConfigApi.delete,
-          baseConfig,
-          { hasBody: true },
-          onSuccess,
-          onError,
-        );
+        await CacheConfigApi.delete(baseConfig, { hasBody: true })
+          .then(onSuccess)
+          .catch(onError);
       }
     },
-    [configs, debouncedRequest],
+    [configs],
   );
 
-  const setRootStrategy = (newStrategy: Strat) =>
-    setStrategy("root", 0, newStrategy);
-  const setDBStrategy = (databaseId: number, newStrategy: Strat | null) =>
-    setStrategy("database", databaseId, newStrategy);
+  const setRootStrategy = async (newStrategy: Strat) =>
+    await setStrategy("root", 0, newStrategy);
+  const setDBStrategy = async (databaseId: number, newStrategy: Strat | null) =>
+    await setStrategy("database", databaseId, newStrategy);
 
   const [showLoadingSpinner, setShowLoadingSpinner] = useState(false);
 
@@ -259,7 +249,7 @@ export const StrategyEditorForDatabases = ({
 
   const showStrategyForm = targetId !== null;
 
-  const saveStrategy = (newStrategyValues: Partial<Strat> | null) => {
+  const saveStrategy = async (newStrategyValues: Partial<Strat> | null) => {
     const newStrategy = newStrategyValues
       ? {
           type: savedStrategy?.type,
@@ -278,16 +268,16 @@ export const StrategyEditorForDatabases = ({
       if (newStrategy === null) {
         console.error("Cannot delete root strategy");
       } else {
-        setRootStrategy(newStrategy);
+        await setRootStrategy(newStrategy);
       }
     } else if (targetId !== null) {
-      setDBStrategy(targetId, newStrategy);
+      await setDBStrategy(targetId, newStrategy);
     } else {
       console.error("No target specified");
     }
   };
 
-  const clearDBOverrides = useCallback(() => {
+  const clearDBOverrides = useCallback(async () => {
     const originalConfigs = [...configs];
     setConfigs(configs => configs.filter(({ model }) => model !== "database"));
 
@@ -306,18 +296,17 @@ export const StrategyEditorForDatabases = ({
     };
 
     const onError = async () => {
+      await showErrorToast();
       setConfigs(originalConfigs);
     };
 
-    // Remove configurations with the collected IDs
-    debouncedRequest(
-      CacheConfigApi.delete,
+    await CacheConfigApi.delete(
       { model_id: ids, model: "database" },
       { hasBody: true },
-      onSuccess,
-      onError,
-    );
-  }, [configs, setConfigs, debouncedRequest, showErrorToast, showSuccessToast]);
+    )
+      .then(onSuccess)
+      .catch(onError);
+  }, [configs, setConfigs, showErrorToast, showSuccessToast]);
 
   if (errorWhenLoadingConfigs || areConfigsLoading) {
     return showLoadingSpinner ? (
@@ -337,8 +326,8 @@ export const StrategyEditorForDatabases = ({
     ) : null;
   }
 
-  const handleFormSubmit = (values: Partial<Strat>) => {
-    saveStrategy(
+  const handleFormSubmit = async (values: Partial<Strat>) => {
+    await saveStrategy(
       values.type === "inherit"
         ? null // Delete the strategy
         : { ...savedStrategy, ...values },
@@ -399,7 +388,13 @@ export const StrategyEditorForDatabases = ({
                     safelyUpdateTargetId={safelyUpdateTargetId}
                   />
                 ))}
-                {t`Reset all to default`}
+                <Button
+                  color={color("error")}
+                  variant="subtle"
+                  onClick={clearDBOverrides}
+                >
+                  {t`Reset all to default`}
+                </Button>
               </Stack>
             </Panel>
           )}

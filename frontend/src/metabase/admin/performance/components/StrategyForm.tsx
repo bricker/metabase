@@ -1,5 +1,4 @@
 import { useFormikContext } from "formik";
-import { useEffect, useRef } from "react";
 import { t } from "ttag";
 import _ from "underscore";
 
@@ -12,12 +11,19 @@ import {
   FormTextInput,
 } from "metabase/forms";
 import { color } from "metabase/lib/colors";
-import { Button, Group, Radio, Stack, Text, Title } from "metabase/ui";
+import {
+  Button,
+  Group,
+  Icon,
+  Loader,
+  Radio,
+  Stack,
+  Text,
+  Title,
+} from "metabase/ui";
 
 import type { ModelId, Strat } from "../types";
 import { Strategies } from "../types";
-
-import { Panel } from "./StrategyEditorForDatabases.styled";
 
 export const StrategyForm = ({
   isRequestPending,
@@ -104,8 +110,9 @@ export const StrategyForm = ({
 // <Select data={durations} />
 // </section>
 
-export const FormButtons = ({}: {}) => {
-  const { dirty } = useFormikContext();
+export const FormButtons = () => {
+  const { values } = useFormikContext();
+
   return (
     <Group
       style={{
@@ -117,11 +124,28 @@ export const FormButtons = ({}: {}) => {
       bg={color("white")}
       spacing="md"
     >
-      <Button variant="subtle">{t`Discard changes`}</Button>
-      {/* TODO perhaps FormSubmitButton should not show the success label when the form is dirty? */}
+      <Button
+        variant="subtle"
+        onClick={() => {
+          // FIXME:
+          alert("not yet implemented");
+        }}
+      >{t`Discard changes`}</Button>
       <FormSubmitButton
-        key={dirty ? "dirty" : ""}
+        // Ensure that the button is recreated when the form becomes dirty
+        key={JSON.stringify(values)}
         label={t`Save changes`}
+        successLabel={
+          <Group spacing="xs">
+            <Icon name="check" /> {t`Saved`}
+          </Group>
+        }
+        activeLabel={
+          <Group spacing="sm">
+            <Loader style={{ filter: "brightness(300%)" }} size="xs" />
+            {t`Saving...`}
+          </Group>
+        }
         variant="filled"
       />
     </Group>
@@ -152,24 +176,6 @@ export const PositiveNumberInput = ({ fieldName }: { fieldName: string }) => {
 const StrategySelector = ({ targetId }: { targetId: ModelId | null }) => {
   const { values } = useFormikContext<Strat>();
 
-  const radioButtonMapRef = useRef<Map<string | null, HTMLInputElement>>(
-    new Map(),
-  );
-  const radioButtonMap = radioButtonMapRef.current;
-
-  useEffect(
-    () => {
-      const strategyType = values.type ?? "inherit";
-      if (strategyType) {
-        radioButtonMap.get(strategyType)?.focus();
-      }
-    },
-    // We only want to focus the radio button when the targetId changes,
-    // not when the strategy changes
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [targetId],
-  );
-
   const availableStrategies =
     targetId === "root" ? _.omit(Strategies, "inherit") : Strategies;
 
@@ -184,9 +190,6 @@ const StrategySelector = ({ targetId }: { targetId: ModelId | null }) => {
         <Stack mt="md" spacing="md">
           {_.map(availableStrategies, (option, name) => (
             <Radio
-              ref={(el: HTMLInputElement) => {
-                radioButtonMap.set(name, el);
-              }}
               value={name}
               key={name}
               label={option.label}

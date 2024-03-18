@@ -18,12 +18,12 @@ export interface UseFormSubmitButtonResult {
 export const useFormSubmitButton = ({
   isDisabled = false,
 }: UseFormSubmitButtonProps): UseFormSubmitButtonResult => {
-  const { isValid, isSubmitting, dirty } = useFormikContext();
+  const { isValid, isSubmitting } = useFormikContext();
 
   const { status } = useFormContext();
   const isRecent = useIsRecent(status, STATUS_TIMEOUT);
   return {
-    status: dirty ? "idle" : getFormStatus(status, isRecent),
+    status: getFormStatus(status, isRecent),
     isDisabled: !isValid || isSubmitting || isDisabled,
   };
 };
