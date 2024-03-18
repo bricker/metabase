@@ -162,7 +162,10 @@ export const displayInfo: typeof DisplayInfoFn = (...args) => {
       type: "drill-thru/combine-columns",
       defaultSeparator: "/",
       column: createdAtColumn!,
-      availableColumns: columns.slice(0, 5),
+      availableColumns: columns.filter(column => {
+        const info = ML.display_info(query, stageIndex, column);
+        return info.table.name === "ORDERS";
+      }),
     };
   }
 

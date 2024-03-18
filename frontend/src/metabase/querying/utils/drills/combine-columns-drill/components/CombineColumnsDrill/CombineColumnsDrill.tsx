@@ -2,15 +2,26 @@ import type { FormEventHandler } from "react";
 import { useMemo, useState } from "react";
 import { jt, t } from "ttag";
 
-import { Box, Button, Card, Flex, Icon, Stack, Title } from "metabase/ui";
-import * as Lib from "metabase-lib";
+import {
+  Box,
+  Button,
+  Card,
+  Flex,
+  Icon,
+  Select,
+  Stack,
+  Title,
+} from "metabase/ui";
+import type * as Lib from "metabase-lib";
 
 import type { ColumnAndSeparator } from "../../types";
 import {
   formatSeparator,
+  fromSelectValue,
   getColumnOptions,
   getInitialColumnAndSeparator,
   getNextColumnAndSeparator,
+  toSelectValue,
 } from "../../utils";
 import { ColumnAndSeparatorRow } from "../ColumnAndSeparatorRow";
 import { Preview } from "../Preview";
@@ -32,15 +43,18 @@ export const CombineColumnsDrill = ({
   stageIndex,
   onSubmit,
 }: Props) => {
-  const { availableColumns, column, defaultSeparator } = drillInfo;
-  const columnInfo = Lib.displayInfo(query, stageIndex, column);
+  const { availableColumns, defaultSeparator } = drillInfo;
+
   const options = useMemo(() => {
     return getColumnOptions(query, stageIndex, availableColumns);
   }, [query, stageIndex, availableColumns]);
-  const [columnsAndSeparators, setColumnsAndSeparators] = useState([
-    getInitialColumnAndSeparator(drillInfo),
-  ]);
-  const [isUsingDefaultSeparator, setIsUsingDefaultSeparator] = useState(true);
+  const [sourceColumn, setSourceColumn] = useState<Lib.ColumnMetadata | null>(
+    null,
+  );
+  const [columnsAndSeparators, setColumnsAndSeparators] = useState<
+    ColumnAndSeparator[]
+  >([]);
+  const [isUsingDefaultSeparator, setIsUsingDefaultSeparator] = useState(false);
 
   const handleChange = (index: number, change: Partial<ColumnAndSeparator>) => {
     setColumnsAndSeparators(value => [
@@ -53,7 +67,12 @@ export const CombineColumnsDrill = ({
   const handleAdd = () => {
     setColumnsAndSeparators(value => [
       ...value,
-      getNextColumnAndSeparator(drillInfo, options, columnsAndSeparators),
+      getNextColumnAndSeparator(
+        drillInfo,
+        sourceColumn,
+        options,
+        columnsAndSeparators,
+      ),
     ]);
   };
 
@@ -76,60 +95,91 @@ export const CombineColumnsDrill = ({
   return (
     <form onSubmit={handleSubmit}>
       <Card className={styles.card} maw="100vw" miw={340} p="lg">
-        <Title
-          mb="md"
-          order={4}
-        >{jt`Combine ${columnInfo.displayName} with`}</Title>
+        <Title mb="md" order={4}>{t`Combine columns`}</Title>
 
         <Stack spacing="lg">
-          <Stack spacing="sm">
-            <Stack className={styles.inputs} mah="50vh" spacing="sm">
-              {columnsAndSeparators.map(({ column, separator }, index) => (
-                <ColumnAndSeparatorRow
-                  column={column}
-                  index={index}
-                  key={index}
-                  options={options}
-                  separator={separator}
-                  showLabels={!isUsingDefaultSeparator && index === 0}
-                  showRemove={columnsAndSeparators.length > 1}
-                  showSeparator={!isUsingDefaultSeparator}
-                  onChange={handleChange}
-                  onRemove={handleRemove}
-                />
-              ))}
-            </Stack>
-
-            {isUsingDefaultSeparator && (
-              <Box>
-                <Button p={0} variant="subtle" onClick={handleEditSeparators}>
-                  {jt`Separated by ${formatSeparator(defaultSeparator)}`}
-                </Button>
-              </Box>
-            )}
-          </Stack>
-
-          <Preview
-            columnsAndSeparators={columnsAndSeparators}
-            drill={drill}
-            query={query}
-            stageIndex={stageIndex}
+          <Select
+            className={styles.column}
+            data={options}
+            // label={showLabels ? t`Column` : undefined}
+            placeholder={t`Choose source column`}
+            styles={{
+              wrapper: {
+                "&:not(:only-child)": {
+                  marginTop: 0,
+                },
+              },
+            }}
+            initiallyOpened
+            value={sourceColumn ? toSelectValue(options, sourceColumn) : null}
+            onChange={value => {
+              const column = fromSelectValue(options, value);
+              if (!sourceColumn) {
+                setColumnsAndSeparators([
+                  getInitialColumnAndSeparator(drillInfo, column),
+                ]);
+              }
+              setSourceColumn(column);
+            }}
           />
+          {sourceColumn && (
+            <>
+              <Stack spacing="sm">
+                <Stack className={styles.inputs} mah="50vh" spacing="sm">
+                  {columnsAndSeparators.map(({ column, separator }, index) => (
+                    <ColumnAndSeparatorRow
+                      column={column}
+                      index={index}
+                      key={index}
+                      options={options}
+                      separator={separator}
+                      showLabels={!isUsingDefaultSeparator && index === 0}
+                      showRemove={columnsAndSeparators.length > 1}
+                      showSeparator={!isUsingDefaultSeparator}
+                      onChange={handleChange}
+                      onRemove={handleRemove}
+                    />
+                  ))}
+                </Stack>
 
-          <Flex align="center" gap="md" justify="space-between">
-            <Button
-              leftIcon={<Icon name="add" />}
-              p={0}
-              variant="subtle"
-              onClick={handleAdd}
-            >
-              {t`Add another column`}
-            </Button>
+                {isUsingDefaultSeparator && (
+                  <Box>
+                    <Button
+                      p={0}
+                      variant="subtle"
+                      onClick={handleEditSeparators}
+                    >
+                      {jt`Separated by ${formatSeparator(defaultSeparator)}`}
+                    </Button>
+                  </Box>
+                )}
+              </Stack>
 
-            <Button type="submit" variant="filled">
-              {t`Done`}
-            </Button>
-          </Flex>
+              <Preview
+                columnsAndSeparators={columnsAndSeparators}
+                drill={drill}
+                query={query}
+                stageIndex={stageIndex}
+              />
+            </>
+          )}
+
+          {sourceColumn && (
+            <Flex align="center" gap="md" justify="space-between">
+              <Button
+                leftIcon={<Icon name="add" />}
+                p={0}
+                variant="subtle"
+                onClick={handleAdd}
+              >
+                {t`Add another column`}
+              </Button>
+
+              <Button disabled={!sourceColumn} type="submit" variant="filled">
+                {t`Done`}
+              </Button>
+            </Flex>
+          )}
         </Stack>
       </Card>
     </form>

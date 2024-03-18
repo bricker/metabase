@@ -37,13 +37,17 @@ export const toSelectValue = (
 
 export const getInitialColumnAndSeparator = (
   drillInfo: Lib.CombineColumnsDrillThruInfo,
+  sourceColumn: Lib.ColumnMetadata,
 ): ColumnAndSeparator => ({
-  column: drillInfo.availableColumns[0],
+  column: drillInfo.availableColumns.find(column => {
+    return column !== sourceColumn;
+  })!,
   separator: drillInfo.defaultSeparator,
 });
 
 export const getNextColumnAndSeparator = (
   drillInfo: Lib.CombineColumnsDrillThruInfo,
+  sourceColumn: Lib.ColumnMetadata,
   options: ColumnOption[],
   columnsAndSeparators: ColumnAndSeparator[],
 ): ColumnAndSeparator => {
@@ -51,7 +55,10 @@ export const getNextColumnAndSeparator = (
   const separator = lastSeparator ?? drillInfo.defaultSeparator;
   const defaultColumn = drillInfo.availableColumns[0];
   const nextUnusedOption = options.find(option => {
-    return columnsAndSeparators.every(({ column }) => column !== option.column);
+    return (
+      sourceColumn !== option.column &&
+      columnsAndSeparators.every(({ column }) => column !== option.column)
+    );
   });
   const column = nextUnusedOption ? nextUnusedOption.column : defaultColumn;
   return { column, separator };
