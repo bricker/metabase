@@ -6,6 +6,7 @@ import _ from "underscore";
 // BUG: the confirmation modal is no longer working. time to add some tests so i can catch regressions like this!
 
 import { Form, FormRadioGroup, FormTextInput } from "metabase/forms";
+import { color } from "metabase/lib/colors";
 import { Button, Group, Loader, Radio, Stack, Text, Title } from "metabase/ui";
 
 import type { ModelId, Strat } from "../types";
@@ -29,7 +30,7 @@ export const StrategyForm = ({
   const selectedStrategyType = values.type;
 
   return (
-    <Panel style={{ zIndex: 1 }}>
+    <Panel style={{ padding: 0 }}>
       <Form
         h="100%"
         style={{
@@ -38,7 +39,7 @@ export const StrategyForm = ({
           justifyContent: "space-between",
         }}
       >
-        <Stack spacing="xl">
+        <Stack p="lg" spacing="xl">
           <StrategySelector targetId={targetId} />
           {selectedStrategyType === "ttl" && (
             <>
@@ -111,7 +112,16 @@ export const FormButtons = ({
 }) => {
   if (useFormikContext().dirty || isRequestPending) {
     return (
-      <Group mt="2rem" spacing="md">
+      <Group
+        style={{
+          position: "sticky",
+          bottom: 0,
+          borderTop: `1px solid ${color("border")}`,
+        }}
+        p="1rem"
+        bg={color("white")}
+        spacing="md"
+      >
         <Button variant="subtle">{t`Discard changes`}</Button>
         <Button type="submit" variant="filled">
           {isRequestPending ? (

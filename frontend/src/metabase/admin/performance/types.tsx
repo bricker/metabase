@@ -1,8 +1,6 @@
 import { c, t } from "ttag";
 import type { AnySchema } from "yup";
 
-import type { IconName } from "metabase/ui";
-
 import {
   strategyValidationSchema,
   doNotCacheStrategyValidationSchema,
@@ -19,7 +17,6 @@ type StrategyData = {
   label: string;
   shortLabel?: string;
   validateWith: AnySchema;
-  iconName?: IconName;
 };
 
 export type StrategyType = "nocache" | "ttl" | "duration" | "inherit";
@@ -32,7 +29,6 @@ export const Strategies: Record<StrategyType, StrategyData> = {
     label: t`TTL: When the time-to-live (TTL) expires`,
     shortLabel: c("'TTL' is short for 'time-to-live'").t`TTL`,
     validateWith: ttlStrategyValidationSchema,
-    iconName: "clock",
   },
   duration: {
     label: t`Duration: after a specific number of hours`,
@@ -66,9 +62,8 @@ export const getShortStrategyLabel = (strategy?: Strat) => {
   if (!strategy) {
     return null;
   }
-  const suffix = strategy.type === "duration" ? ` (${strategy.duration})` : "";
   const type = Strategies[strategy.type];
-  return `${type.shortLabel ?? type.label}${suffix}`;
+  return type.shortLabel ?? type.label;
 };
 
 export const isValidStrategyName = (
@@ -137,7 +132,7 @@ export type Strat =
 export interface Config {
   /** The type of cacheable object this configuration concerns */
   model: Model;
-  model_id: number;
+  model_id: ModelId;
   /** Cache invalidation strategy */
   strategy: Strat;
 }
@@ -160,7 +155,7 @@ export type ObjectWithType = {
   [key: string]: string;
 };
 
-export const rootConfigLabel = t`Default for all databases`;
+export const rootConfigLabel = t`Default policy`;
 
 export type SafelyUpdateTargetId = (
   newTargetId: ModelId | null,

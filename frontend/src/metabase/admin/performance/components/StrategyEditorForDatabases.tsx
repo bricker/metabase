@@ -1,4 +1,3 @@
-import { useFormikContext } from "formik";
 import {
   useCallback,
   useEffect,
@@ -13,11 +12,8 @@ import { t } from "ttag";
 // BUG: the confirmation modal is no longer working. time to add some tests so i can catch regressions like this!
 //
 // TODO:
-// - position sticky the buttons
-// - one column
 // - ensure the buttons have the right logic
 // - Ryan's suggestions
-// - the databasewidget on hover should have blue background, white text
 
 import { useDatabaseListQuery } from "metabase/common/hooks";
 import { LeaveConfirmationModalContent } from "metabase/components/LeaveConfirmationModal";
@@ -27,16 +23,7 @@ import { FormProvider } from "metabase/forms";
 import { color } from "metabase/lib/colors";
 import { PLUGIN_CACHING } from "metabase/plugins";
 import { CacheConfigApi } from "metabase/services";
-import type { IconName } from "metabase/ui";
-import {
-  Button,
-  FixedSizeIcon,
-  Flex,
-  Grid,
-  Stack,
-  Text,
-  Title,
-} from "metabase/ui";
+import { Grid, Stack, Text } from "metabase/ui";
 
 import { useRequests } from "../hooks/useRequests";
 import type {
@@ -48,11 +35,11 @@ import type {
   SafelyUpdateTargetId,
   Strat,
 } from "../types";
-import { getShortStrategyLabel, isValidStrategy, Strategies } from "../types";
+import { isValidStrategy } from "../types";
 import { strategyValidationSchema } from "../validation";
 
 import { DatabaseFormTrigger } from "./DatabaseFormTrigger";
-import { Chip, Panel, TabWrapper } from "./StrategyEditorForDatabases.styled";
+import { Panel, TabWrapper } from "./StrategyEditorForDatabases.styled";
 import { StrategyForm } from "./StrategyForm";
 
 export const StrategyEditorForDatabases = ({
@@ -98,8 +85,6 @@ export const StrategyEditorForDatabases = ({
 
   const [configs, setConfigs] = useState<Config[]>([]);
 
-  const [shouldShowDBList, setShouldShowDBList] = useState(true);
-
   useEffect(() => {
     if (configsFromAPI) {
       setConfigs(configsFromAPI);
@@ -117,18 +102,19 @@ export const StrategyEditorForDatabases = ({
     const savedRootStrategy = configs.find(
       config => config.model === "root",
     )?.strategy;
-    if (savedRootStrategy) {
-      map.set("root", {
-        model: "root",
-        model_id: 0,
-        strategy: savedRootStrategy,
-      });
-    }
+    map.set("root", {
+      model: "root",
+      model_id: 0,
+      strategy: savedRootStrategy ?? { type: "nocache" },
+    });
     return map;
   }, [configs, databases]);
 
-  /** Id of the database currently being edited, or 'root' for the root strategy */
-  const [targetId, setTargetId] = useState<ModelId | null>(null);
+  const [
+    /** Id of the model currently being edited */
+    targetId,
+    setTargetId,
+  ] = useState<ModelId | null>(null);
 
   const onConfirmDiscardChanges = useRef<() => void>(() => null);
 
@@ -152,18 +138,7 @@ export const StrategyEditorForDatabases = ({
     }
   };
 
-  const rootStrategy = savedConfigs.get("root")?.strategy ?? {
-    type: "nocache",
-  };
-
-  useEffect(() => {
-    if (targetId === "root") {
-      setShouldShowDBList(false);
-    }
-  }, [targetId]);
-
-  /** The config for the database currently being edited,
-   * or the config for the root strategy if that is what is being edited */
+  /** The config for the model currently being edited */
   const targetConfig = savedConfigs.get(targetId);
   const savedStrategy = targetConfig?.strategy;
 
@@ -312,8 +287,6 @@ export const StrategyEditorForDatabases = ({
     ) : null;
   }
 
-  const rootStrategyIconName = Strategies[rootStrategy.type].iconName;
-
   const handleFormSubmit = (values: Partial<Strat>) => {
     saveStrategy(
       values.type === "inherit"
@@ -344,11 +317,12 @@ export const StrategyEditorForDatabases = ({
         <Grid
           style={{
             display: "grid",
-            gridTemplateColumns: "1fr 1fr 1fr",
+            gridTemplateColumns: "1fr 1fr",
             overflow: "hidden",
           }}
           w="100%"
           mb="1rem"
+          mx="0"
         >
           {!canOnlyConfigureRootStrategy && (
             <>
@@ -357,69 +331,32 @@ export const StrategyEditorForDatabases = ({
                 role="group"
                 style={{ backgroundColor: color("bg-light"), zIndex: 3 }}
               >
-                <Button
-                  variant="subtle"
-                  p=".25rem .5rem"
-                  fw="bold"
-                  mb=".5rem"
-                  lh="1.5rem"
-                  rightIcon={<FixedSizeIcon name="chevronright" />}
-                  styles={{
-                    root: {
-                      backgroundColor: shouldShowDBList
-                        ? color("bg-medium")
-                        : "transparent",
-                      "&:hover": {
-                        backgroundColor: shouldShowDBList
-                          ? color("bg-medium")
-                          : "transparent",
-                      },
-                    },
-                    inner: {
-                      justifyContent: "space-between",
-                    },
-                  }}
-                  onClick={() => {
-                    if (!shouldShowDBList) {
-                      setShouldShowDBList(isVisible => !isVisible);
-                    }
-                  }}
+                <Stack
+                  p="lg"
+                  spacing="lg"
+                  style={{ borderBottom: `1px solid ${color("border")}` }}
                 >
-                  <Flex gap="0.5rem" w="100%" align="center">
-                    <FixedSizeIcon name="database" />
-                    <Title color="inherit" order={5}>{t`Databases`}</Title>
-                  </Flex>
-                </Button>
-                <RootStrategyChip
-                  rootStrategy={rootStrategy}
-                  rootStrategyIconName={rootStrategyIconName}
-                  targetId={targetId}
-                  safelyUpdateTargetId={safelyUpdateTargetId}
-                  setShouldShowDBList={setShouldShowDBList}
-                />
+                  <DatabaseFormTrigger
+                    forId="root"
+                    title={t`Default policy`}
+                    savedConfigs={savedConfigs}
+                    targetId={targetId}
+                    safelyUpdateTargetId={safelyUpdateTargetId}
+                  />
+                </Stack>
+                <Stack p="lg" spacing="lg">
+                  {databases?.map(db => (
+                    <DatabaseFormTrigger
+                      forId={db.id}
+                      title={db.name}
+                      key={db.id.toString()}
+                      savedConfigs={savedConfigs}
+                      targetId={targetId}
+                      safelyUpdateTargetId={safelyUpdateTargetId}
+                    />
+                  ))}
+                </Stack>
               </Panel>
-              {shouldShowDBList && (
-                <Panel
-                  role="group"
-                  style={{
-                    borderStartEndRadius: 0,
-                    borderEndEndRadius: 0,
-                    zIndex: 2,
-                  }}
-                >
-                  <Stack spacing="lg">
-                    {databases?.map(db => (
-                      <DatabaseFormTrigger
-                        db={db}
-                        key={db.id.toString()}
-                        savedConfigs={savedConfigs}
-                        targetId={targetId}
-                        safelyUpdateTargetId={safelyUpdateTargetId}
-                      />
-                    ))}
-                  </Stack>
-                </Panel>
-              )}
             </>
           )}
           {showStrategyForm && (
@@ -434,61 +371,51 @@ export const StrategyEditorForDatabases = ({
   );
 };
 
-const RootStrategyChip = ({
-  rootStrategy,
-  rootStrategyIconName,
-  targetId,
-  safelyUpdateTargetId,
-  setShouldShowDBList,
-}: {
-  rootStrategy: Strat;
-  rootStrategyIconName: IconName | undefined;
-  targetId: ModelId | null;
-  safelyUpdateTargetId: SafelyUpdateTargetId;
-  setShouldShowDBList: (isVisible: boolean) => void;
-}) => {
-  const isFormDirty = useFormikContext().dirty;
-  return (
-    <Chip
-      leftIcon={
-        rootStrategyIconName ? (
-          <FixedSizeIcon name={rootStrategyIconName} />
-        ) : undefined
-      }
-      styles={{
-        inner: {
-          display: "flex",
-          flex: 1,
-          flexFlow: "row nowrap",
-          justifyContent: "flex-start",
-        },
-        label: {
-          display: "flex",
-          flex: 1,
-          flexFlow: "row nowrap",
-        },
-      }}
-      py="0.25rem"
-      style={{
-        paddingInlineStart: rootStrategyIconName ? "0.5rem" : ".65rem",
-        paddingInlineEnd: "0.5rem",
-      }}
-      lh="1.5rem"
-      w="100%"
-      rightIcon={
-        <FixedSizeIcon name="ellipsis" style={{ paddingInlineEnd: "2px" }} />
-      }
-      variant={targetId === "root" ? "filled" : "white"}
-      onClick={() => {
-        if (targetId === "root") {
-          return;
-        }
-        safelyUpdateTargetId("root", isFormDirty, () => {
-          setShouldShowDBList(false);
-        });
-      }}
-    >
-      {getShortStrategyLabel(rootStrategy)}
-    </Chip>
-  );
-};
+// const RootStrategyChip = ({
+//   rootStrategy,
+//   rootStrategyIconName,
+//   targetId,
+//   safelyUpdateTargetId,
+// }: {
+//   rootStrategy: Strat;
+//   rootStrategyIconName: IconName | undefined;
+//   targetId: ModelId | null;
+//   safelyUpdateTargetId: SafelyUpdateTargetId;
+// }) => {
+//   const isFormDirty = useFormikContext().dirty;
+//   return (
+//     <Chip
+//       styles={{
+//         inner: {
+//           display: "flex",
+//           flex: 1,
+//           flexFlow: "row nowrap",
+//           justifyContent: "flex-start",
+//         },
+//         label: {
+//           display: "flex",
+//           flex: 1,
+//           flexFlow: "row nowrap",
+//         },
+//       }}
+//       py="0.25rem"
+//       style={{
+//         paddingInlineStart: rootStrategyIconName ? "0.5rem" : ".65rem",
+//         paddingInlineEnd: "0.5rem",
+//       }}
+//       lh="1.5rem"
+//       rightIcon={
+//         <FixedSizeIcon name="ellipsis" style={{ paddingInlineEnd: "2px" }} />
+//       }
+//       variant={targetId === "root" ? "filled" : "white"}
+//       onClick={() => {
+//         if (targetId === "root") {
+//           return;
+//         }
+//         safelyUpdateTargetId("root", isFormDirty);
+//       }}
+//     >
+//       {getShortStrategyLabel(rootStrategy)}
+//     </Chip>
+//   );
+// };

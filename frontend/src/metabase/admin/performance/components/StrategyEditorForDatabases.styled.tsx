@@ -11,7 +11,6 @@ export const Panel = styled.div`
   overflow-y: auto;
   display: flex;
   flex-flow: column nowrap;
-  padding: 1.5rem;
   background-color: ${color("white")};
   border-style: solid;
   border-color: ${color("border")};
