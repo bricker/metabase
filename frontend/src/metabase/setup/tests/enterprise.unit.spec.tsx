@@ -38,7 +38,7 @@ const sampleToken = "a".repeat(64);
 describe("setup (EE, no token)", () => {
   it("default step order should be correct, with the commercial step in place", async () => {
     await setupEnterprise();
-    skipWelcomeScreen();
+    await skipWelcomeScreen();
     expectSectionToHaveLabel("What's your preferred language?", "1");
     expectSectionToHaveLabel("What should we call you?", "2");
     expectSectionToHaveLabel("What will you use Metabase for?", "3");
@@ -52,11 +52,11 @@ describe("setup (EE, no token)", () => {
   describe("License activation step", () => {
     async function setupForLicenseStep() {
       await setupEnterprise();
-      skipWelcomeScreen();
-      skipLanguageStep();
+      await skipWelcomeScreen();
+      await skipLanguageStep();
       await submitUserInfoStep();
-      selectUsageReason("embedding"); // to skip the db connection step
-      clickNextStep();
+      await selectUsageReason("embedding"); // to skip the db connection step
+      await clickNextStep();
 
       expect(
         await screen.findByText(
@@ -70,10 +70,8 @@ describe("setup (EE, no token)", () => {
 
       setupForTokenCheckEndpoint({ valid: false });
 
-      userEvent.paste(
-        screen.getByRole("textbox", { name: "Token" }),
-        sampleToken,
-      );
+      screen.getByRole("textbox", { name: "Token" }).click();
+      await userEvent.paste(sampleToken);
 
       screen.getByRole("button", { name: "Activate" }).click();
 
@@ -89,10 +87,8 @@ describe("setup (EE, no token)", () => {
 
       setupForTokenCheckEndpoint({ valid: false });
 
-      userEvent.paste(
-        screen.getByRole("textbox", { name: "Token" }),
-        sampleToken,
-      );
+      screen.getByRole("textbox", { name: "Token" }).click();
+      await userEvent.paste(sampleToken);
 
       screen.getByRole("button", { name: "Activate" }).click();
 
@@ -100,7 +96,7 @@ describe("setup (EE, no token)", () => {
         "This token doesn’t seem to be valid. Double-check it, then contact support if you think it should be working",
       );
 
-      userEvent.type(
+      await userEvent.type(
         screen.getByRole("textbox", { name: "Token" }),
         "{backspace}b",
       );
@@ -111,7 +107,7 @@ describe("setup (EE, no token)", () => {
         }),
       ).not.toBeInTheDocument();
 
-      clickOnSkip();
+      await clickOnSkip();
 
       expect(trackLicenseTokenStepSubmitted).toHaveBeenCalledWith(false);
 
@@ -126,18 +122,16 @@ describe("setup (EE, no token)", () => {
     it("should have the Activate button disabled when the token is not 64 characters long", async () => {
       await setupForLicenseStep();
 
-      userEvent.paste(
-        screen.getByRole("textbox", { name: "Token" }),
-        "a".repeat(63),
-      );
+      screen.getByRole("textbox", { name: "Token" }).click();
+      await userEvent.paste("a".repeat(63));
 
       expect(screen.getByRole("button", { name: "Activate" })).toBeDisabled();
 
-      userEvent.type(screen.getByRole("textbox", { name: "Token" }), "a"); //64 characters
+      await userEvent.type(screen.getByRole("textbox", { name: "Token" }), "a"); //64 characters
 
       expect(screen.getByRole("button", { name: "Activate" })).toBeEnabled();
 
-      userEvent.type(screen.getByRole("textbox", { name: "Token" }), "a"); //65 characters
+      await userEvent.type(screen.getByRole("textbox", { name: "Token" }), "a"); //65 characters
 
       expect(screen.getByRole("button", { name: "Activate" })).toBeDisabled();
     });
@@ -147,10 +141,8 @@ describe("setup (EE, no token)", () => {
 
       const token = "a".repeat(64);
 
-      userEvent.paste(
-        screen.getByRole("textbox", { name: "Token" }),
-        `    ${token}   `,
-      );
+      screen.getByRole("textbox", { name: "Token" }).click();
+      await userEvent.paste(`    ${token}   `);
 
       expect(screen.getByRole("button", { name: "Activate" })).toBeEnabled();
 
@@ -169,10 +161,8 @@ describe("setup (EE, no token)", () => {
 
       setupForTokenCheckEndpoint({ valid: true });
 
-      userEvent.paste(
-        screen.getByRole("textbox", { name: "Token" }),
-        sampleToken,
-      );
+      screen.getByRole("textbox", { name: "Token" }).click();
+      await userEvent.paste(sampleToken);
 
       screen.getByRole("button", { name: "Activate" }).click();
 
@@ -199,7 +189,7 @@ describe("setup (EE, no token)", () => {
     it("should be possible to skip the step without a token", async () => {
       await setupForLicenseStep();
 
-      clickOnSkip();
+      await clickOnSkip();
 
       expect(trackLicenseTokenStepSubmitted).toHaveBeenCalledWith(false);
 
@@ -214,10 +204,8 @@ describe("setup (EE, no token)", () => {
 
       setupForTokenCheckEndpoint({ valid: true });
 
-      userEvent.paste(
-        screen.getByRole("textbox", { name: "Token" }),
-        sampleToken,
-      );
+      screen.getByRole("textbox", { name: "Token" }).click();
+      await userEvent.paste(sampleToken);
 
       screen.getByRole("button", { name: "Activate" }).click();
 
@@ -231,5 +219,5 @@ describe("setup (EE, no token)", () => {
   });
 });
 
-const clickOnSkip = () =>
-  userEvent.click(screen.getByRole("button", { name: "Skip" }));
+const clickOnSkip = async () =>
+  await userEvent.click(screen.getByRole("button", { name: "Skip" }));
