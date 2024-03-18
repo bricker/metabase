@@ -1,4 +1,5 @@
 import { useFormikContext } from "formik";
+import { useState } from "react";
 import { c, t } from "ttag";
 
 import { color } from "metabase/lib/colors";
@@ -50,6 +51,14 @@ export const DatabaseFormTrigger = ({
 
   // Use forms/FormSubmitButton because it has good race condition logic built in
 
+  const [hovered, setHovered] = useState(false);
+  const buttonVariant =
+    isBeingEdited || hovered
+      ? "filled"
+      : inheritsRootStrategy
+      ? "white"
+      : "outline";
+
   return (
     <Box
       w="100%"
@@ -71,13 +80,10 @@ export const DatabaseFormTrigger = ({
             }
             safelyUpdateTargetId(db.id, isFormDirty);
           }}
-          variant={
-            isBeingEdited
-              ? "filled"
-              : inheritsRootStrategy
-              ? "white"
-              : "outline"
-          }
+          // The hover state is in a state variable so that it can determine the variant prop
+          onMouseOver={() => setHovered(true)}
+          onMouseOut={() => setHovered(false)}
+          variant={buttonVariant}
           style={{
             // like margin-left but RTL friendly
             marginInlineStart: "auto",

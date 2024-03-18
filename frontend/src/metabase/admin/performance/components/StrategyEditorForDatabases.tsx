@@ -11,6 +11,13 @@ import { useAsync } from "react-use";
 import { t } from "ttag";
 
 // BUG: the confirmation modal is no longer working. time to add some tests so i can catch regressions like this!
+//
+// TODO:
+// - position sticky the buttons
+// - one column
+// - ensure the buttons have the right logic
+// - Ryan's suggestions
+// - the databasewidget on hover should have blue background, white text
 
 import { useDatabaseListQuery } from "metabase/common/hooks";
 import { LeaveConfirmationModalContent } from "metabase/components/LeaveConfirmationModal";
