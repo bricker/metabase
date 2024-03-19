@@ -23,7 +23,7 @@ import { FormProvider } from "metabase/forms";
 import { color } from "metabase/lib/colors";
 import { PLUGIN_CACHING } from "metabase/plugins";
 import { CacheConfigApi } from "metabase/services";
-import { Button, Grid, Stack, Text } from "metabase/ui";
+import { Button, Grid, Stack, Title } from "metabase/ui";
 
 import { useRequests } from "../hooks/useRequests";
 import type {
@@ -195,12 +195,18 @@ export const StrategyEditorForDatabases = ({
           ...baseConfig,
           strategy: newStrategy,
         };
-        setConfigs([...otherConfigs, newConfig]);
-        await CacheConfigApi.update(newConfig).then(onSuccess).catch(onError);
+        await CacheConfigApi.update(newConfig)
+          .then(onSuccess)
+          .then(() => {
+            setConfigs([...otherConfigs, newConfig]);
+          })
+          .catch(onError);
       } else {
-        setConfigs(otherConfigs);
         await CacheConfigApi.delete(baseConfig, { hasBody: true })
           .then(onSuccess)
+          .then(() => {
+            setConfigs(otherConfigs);
+          })
           .catch(onError);
       }
     },
@@ -343,9 +349,12 @@ export const StrategyEditorForDatabases = ({
       enableReinitialize={true}
     >
       <TabWrapper role="region" aria-label="Data caching settings">
-        <Text component="aside" lh="1rem" maw="32rem" mb="1.5rem">
-          {PLUGIN_CACHING.explanation}
-        </Text>
+        <Stack spacing="md" lh="1rem" maw="32rem" mb="1.5rem">
+          <aside>{PLUGIN_CACHING.explanation}</aside>
+          <Title order={4}>
+            Pick the policy for when cached query results should be invalidated.
+          </Title>
+        </Stack>
         <Modal isOpen={showCancelEditWarning}>
           <LeaveConfirmationModalContent
             onAction={() => onConfirmDiscardChanges.current()}

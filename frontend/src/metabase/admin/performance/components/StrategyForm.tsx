@@ -1,5 +1,5 @@
 import { useFormikContext } from "formik";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { t } from "ttag";
 import _ from "underscore";
 
@@ -56,14 +56,15 @@ export const StrategyForm = ({
             <section>
               <Title order={4}>{t`Minimum query duration`}</Title>
               <p>
-                {t`Metabase will cache all saved questions with an average query execution time longer than this many seconds:`}
+                {t`Metabase will cache all saved questions with an average query execution time greater than this many seconds.`}
               </p>
               <PositiveNumberInput fieldName="min_duration" />
             </section>
             <section>
               <Title order={4}>{t`Cache time-to-live (TTL) multiplier`}</Title>
+              {/* TODO: Add link to example */}
               <p>
-                {t`To determine how long each saved question's cached result should stick around, we take the query's average execution time and multiply that by whatever you input here. So if a query takes on average 2 minutes to run, and you input 10 for your multiplier, its cache entry will persist for 20 minutes.`}
+                {t`To determine how long each cached result should stick around, we take that query's average execution time and multiply that by what you input here. The result is how many seconds the cache should remain valid for.`}
               </p>
               <PositiveNumberInput fieldName="multiplier" />
             </section>
@@ -123,14 +124,20 @@ export const FormButtons = ({
 }) => {
   const { dirty } = useFormikContext<Strat>();
   const context = useFormContext();
-  const [hovered, setHovered] = useState(false);
+
   useEffect(() => {
     if (dirty) {
       context.status = "idle";
     }
   }, [dirty, context]);
 
-  if (!dirty && !isRequestPending && !wasRequestRecentlyPending && !hovered) {
+  useEffect(() => {
+    if (isRequestPending) {
+      context.status = "pending";
+    }
+  }, [isRequestPending, context]);
+
+  if (!dirty && !isRequestPending && !wasRequestRecentlyPending) {
     return null;
   }
 
@@ -144,14 +151,11 @@ export const FormButtons = ({
       p="1rem"
       bg={color("white")}
       spacing="md"
-      // to keep this visible when hovered
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
     >
       <Button variant="subtle" type="reset">{t`Discard changes`}</Button>
       <FormSubmitButton
         label={t`Save changes`}
-        disabled={!dirty || isRequestPending}
+        disabled={isRequestPending}
         successLabel={
           <Group spacing="xs">
             <Icon name="check" /> {t`Saved`}
@@ -205,14 +209,27 @@ const StrategySelector = ({ targetId }: { targetId: ModelId | null }) => {
         name="type"
       >
         <Stack mt="md" spacing="md">
-          {_.map(availableStrategies, (option, name) => (
-            <Radio
-              value={name}
-              key={name}
-              label={option.label}
-              autoFocus={values.type === name}
-            />
-          ))}
+          {_.map(availableStrategies, (option, name) => {
+            const optionLabelParts = option.label.split(":");
+            // FIXME: This assumes the translation will always punctuate a subtitle with ':'
+            const optionLabelFormatted =
+              optionLabelParts.length === 1 ? (
+                option.label
+              ) : (
+                <>
+                  <strong>{option.label.split(":")[0]}</strong>:
+                  {option.label.split(":")[1]}
+                </>
+              );
+            return (
+              <Radio
+                value={name}
+                key={name}
+                label={optionLabelFormatted}
+                autoFocus={values.type === name}
+              />
+            );
+          })}
         </Stack>
       </FormRadioGroup>
     </section>

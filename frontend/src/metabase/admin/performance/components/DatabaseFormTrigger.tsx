@@ -102,6 +102,7 @@ import { Chip } from "./StrategyEditorForDatabases.styled";
 //   );
 // };
 
+// Rename to CacheableObjectWidget or ModelWidget or something
 export const DatabaseFormTrigger = ({
   forId,
   targetId,
@@ -128,7 +129,7 @@ export const DatabaseFormTrigger = ({
   const buttonVariant =
     isBeingEdited || hovered
       ? "filled"
-      : inheritsRootStrategy
+      : inheritsRootStrategy || forId === "root"
       ? "white"
       : "outline";
   return (
@@ -137,7 +138,11 @@ export const DatabaseFormTrigger = ({
       w="100%"
       p="md"
       fw="bold"
-      style={{ border: `1px solid ${color("border")}`, borderRadius: ".5rem" }}
+      bg={forId === "root" ? color("bg-medium") : undefined}
+      style={{
+        border: `1px solid ${color(forId === "root" ? "bg-medium" : "border")}`,
+        borderRadius: ".5rem",
+      }}
     >
       <Flex gap="0.5rem" color="text-medium" align="center">
         <FixedSizeIcon
@@ -165,7 +170,7 @@ export const DatabaseFormTrigger = ({
         p="0.25rem .75rem"
         styles={{
           root: {
-            borderRadius: "1rem",
+            borderRadius: "7rem",
           },
           inner: {
             width: "100%",
