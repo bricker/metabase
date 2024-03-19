@@ -22,6 +22,7 @@ interface ItemListProps<TItem extends TypeWithModel> {
   selectedItem: TItem | null;
   isFolder: (item: TItem) => boolean;
   isCurrentLevel: boolean;
+  shouldDisableItem?: (item: TItem) => boolean;
 }
 
 export const ItemList = <TItem extends TypeWithModel>({
@@ -32,7 +33,7 @@ export const ItemList = <TItem extends TypeWithModel>({
   selectedItem,
   isFolder,
   isCurrentLevel,
-  shouldShowItem,
+  shouldDisableItem,
 }: ItemListProps<TItem>) => {
   const activeItemIndex = useMemo(() => {
     if (!items) {
@@ -80,7 +81,7 @@ export const ItemList = <TItem extends TypeWithModel>({
       {items.map((item: TItem) => (
         <div key={`${item.model ?? "collection"}-${item.id}`}>
           <NavLink
-            disabled={!shouldShowItem(item)}
+            disabled={shouldDisableItem?.(item)}
             rightSection={
               isFolder(item) ? <Icon name="chevronright" size={10} /> : null
             }

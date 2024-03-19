@@ -27,7 +27,7 @@ import MoveEventModal from "metabase/timelines/questions/containers/MoveEventMod
 import NewEventModal from "metabase/timelines/questions/containers/NewEventModal";
 import * as Lib from "metabase-lib";
 import type Question from "metabase-lib/v1/Question";
-import type { Alert, Card, Collection, User } from "metabase-types/api";
+import type { Alert, Card, CollectionId, User } from "metabase-types/api";
 import type {
   QueryBuilderMode,
   QueryBuilderUIControls,
@@ -73,7 +73,7 @@ interface QueryModalsProps {
   onChangeLocation: (location: string) => void;
   setQuestionCollection: (
     { id }: Pick<Card, "id">,
-    collection: Collection,
+    collection: { id: CollectionId },
     opts: Record<string, unknown>,
   ) => void;
 }
@@ -242,12 +242,12 @@ class QueryModals extends Component<QueryModalsProps> {
           <Modal onClose={onCloseModal}>
             <MoveModal
               title={t`Which collection should this be in?`}
-              initialCollectionId={question.collectionId()}
+              initialCollectionId={question.collectionId() ?? "root"}
               onClose={onCloseModal}
-              onMove={(collection: Collection) => {
+              onMove={(collection: { id: CollectionId }) => {
                 this.props.setQuestionCollection(
                   { id: question.id() },
-                  collection,
+                  { id: collection.id },
                   {
                     notify: {
                       message: (

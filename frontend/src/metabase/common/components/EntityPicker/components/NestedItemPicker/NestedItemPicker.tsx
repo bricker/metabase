@@ -27,6 +27,7 @@ export interface NestedItemPickerProps<TItem extends TypeWithModel> {
       options: EntityPickerOptions;
     }
   >;
+  shouldDisableItem?: (item: TItem) => boolean;
 }
 
 const generateKey = (query?: SearchListQuery) =>
@@ -39,7 +40,7 @@ export function NestedItemPicker<TItem extends TypeWithModel>({
   path,
   isFolder,
   listResolver: ListResolver,
-  shouldShowItem,
+  shouldDisableItem,
 }: NestedItemPickerProps<TItem>) {
   const handleClick = (item: TItem) => {
     if (isFolder(item)) {
@@ -70,7 +71,7 @@ export function NestedItemPicker<TItem extends TypeWithModel>({
                   options={options}
                   onClick={(item: TItem) => handleClick(item)}
                   isCurrentLevel={index === path.length - 2}
-                  shouldShowItem={shouldShowItem}
+                  shouldDisableItem={shouldDisableItem}
                   isFolder={isFolder}
                 />
               </ErrorBoundary>

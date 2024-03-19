@@ -30,6 +30,7 @@ interface RootItemListProps<CollectionPickerItem extends TypeWithModel> {
   options: EntityPickerOptions;
   isFolder: TisFolder<CollectionPickerItem>;
   isCurrentLevel: boolean;
+  shouldDisableItem?: (item: CollectionPickerItem) => boolean;
 }
 /**
  * This is a special item list that exists "above" our analytics and might include:
@@ -43,7 +44,7 @@ export const RootItemList = ({
   options,
   isFolder,
   isCurrentLevel,
-  shouldShowItem,
+  shouldDisableItem,
 }: RootItemListProps<CollectionPickerItem>) => {
   const isAdmin = useSelector(getUserIsAdmin);
   const currentUser = useSelector(getUser);
@@ -121,7 +122,7 @@ export const RootItemList = ({
       selectedItem={selectedItem}
       isFolder={isFolder}
       isCurrentLevel={isCurrentLevel}
-      shouldShowItem={shouldShowItem}
+      shouldDisableItem={shouldDisableItem}
     />
   );
 };

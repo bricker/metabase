@@ -16,6 +16,7 @@ interface PersonalCollectionsItemListProps<TItem extends TypeWithModel> {
   selectedItem: TItem | null;
   isFolder: TisFolder<TItem>;
   isCurrentLevel: boolean;
+  shouldDisableItem?: (item: TItem) => boolean;
 }
 
 export const PersonalCollectionsItemList = <TItem extends TypeWithModel>({
@@ -23,7 +24,7 @@ export const PersonalCollectionsItemList = <TItem extends TypeWithModel>({
   selectedItem,
   isFolder,
   isCurrentLevel,
-  shouldshowItem,
+  shouldDisableItem,
 }: PersonalCollectionsItemListProps<TItem>) => {
   const {
     data: collections,
@@ -48,7 +49,7 @@ export const PersonalCollectionsItemList = <TItem extends TypeWithModel>({
       selectedItem={selectedItem}
       isFolder={isFolder}
       isCurrentLevel={isCurrentLevel}
-      shouldShowItem={shouldShowItem}
+      shouldDisableItem={shouldDisableItem}
     />
   );
 };

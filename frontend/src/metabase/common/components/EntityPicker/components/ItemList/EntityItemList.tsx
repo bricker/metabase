@@ -10,6 +10,7 @@ export interface EntityItemListProps<TItem extends TypeWithModel> {
   selectedItem: TItem | null;
   isFolder: TisFolder<TItem>;
   isCurrentLevel: boolean;
+  shouldDisableItem?: (item: TItem) => boolean;
 }
 
 export const EntityItemList = <TItem extends TypeWithModel>({
@@ -18,7 +19,7 @@ export const EntityItemList = <TItem extends TypeWithModel>({
   selectedItem,
   isFolder,
   isCurrentLevel,
-  shouldShowItem
+  shouldDisableItem,
 }: EntityItemListProps<TItem>) => {
   const { data, error, isLoading } = useSearchListQuery<TItem>({ query });
 
@@ -31,7 +32,7 @@ export const EntityItemList = <TItem extends TypeWithModel>({
       selectedItem={selectedItem}
       isFolder={isFolder}
       isCurrentLevel={isCurrentLevel}
-      shouldShowItem={shouldShowItem}
+      shouldDisableItem={shouldDisableItem}
     />
   );
 };
