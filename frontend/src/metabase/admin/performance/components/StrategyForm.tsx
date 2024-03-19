@@ -134,11 +134,11 @@ export const FormButtons = () => {
     useState(false);
 
   useEffect(() => {
-    if (isRequestPending) {
+    if (!isRequestPending) {
       setWasRequestRecentlyPending(true);
       const timeout = setTimeout(() => {
         setWasRequestRecentlyPending(false);
-      }, 2000);
+      }, 3000);
       return () => clearTimeout(timeout);
     }
   }, [isRequestPending]);

@@ -9,7 +9,7 @@ import type { FormStatus } from "../../contexts";
 import { useFormSubmitButton } from "../../hooks";
 
 export interface FormSubmitButtonProps extends Omit<ButtonProps, "children"> {
-  label?: string;
+  label?: ReactNode;
   activeLabel?: ReactNode;
   successLabel?: ReactNode;
   failedLabel?: ReactNode;

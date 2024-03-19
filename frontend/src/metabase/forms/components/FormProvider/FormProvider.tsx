@@ -23,7 +23,6 @@ export function FormProvider<T extends FormikValues, C = unknown>({
     validationSchema,
     validationContext,
   });
-
   return (
     <FormContext.Provider value={state}>
       <Formik<T>

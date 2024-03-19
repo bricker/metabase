@@ -19,11 +19,11 @@ import { useDatabaseListQuery } from "metabase/common/hooks";
 import { LeaveConfirmationModalContent } from "metabase/components/LeaveConfirmationModal";
 import LoadingAndErrorWrapper from "metabase/components/LoadingAndErrorWrapper";
 import Modal from "metabase/components/Modal";
-import { FormProvider, FormSubmitButton } from "metabase/forms";
+import { Form, FormProvider, FormSubmitButton } from "metabase/forms";
 import { color } from "metabase/lib/colors";
 import { PLUGIN_CACHING } from "metabase/plugins";
 import { CacheConfigApi } from "metabase/services";
-import { Box, Grid, Stack, Title } from "metabase/ui";
+import { Box, Flex, Grid, Stack, Text, Title } from "metabase/ui";
 
 import { useRequests } from "../hooks/useRequests";
 import type {
@@ -250,6 +250,7 @@ export const StrategyEditorForDatabases = ({
   };
 
   const clearDBOverrides = useCallback(async () => {
+    console.log("clearDBOverrides");
     const originalConfigs = [...configs];
     setConfigs(configs => configs.filter(({ model }) => model !== "database"));
 
@@ -358,11 +359,19 @@ export const StrategyEditorForDatabases = ({
                 />
               ))}
               <FormProvider initialValues={{}} onSubmit={clearDBOverrides}>
-                <FormSubmitButton
-                  label={t`Reset all to default`}
-                  color={color("error")}
-                  variant="subtle"
-                />
+                <Form>
+                  <Flex justify="flex-end">
+                    <FormSubmitButton
+                      label={
+                        <Text
+                          fw="normal"
+                          color="error"
+                        >{t`Reset all to default`}</Text>
+                      }
+                      variant="subtle"
+                    />
+                  </Flex>
+                </Form>
               </FormProvider>
             </Stack>
           </Panel>
