@@ -49,7 +49,7 @@ function BulkActions({
       >
         {styles => (
           <BulkActionsToast style={styles} isNavbarOpen={isNavbarOpen}>
-            <ToastCard dark>
+            <ToastCard dark data-testid="toast-card">
               <CardSide>
                 {ngettext(
                   msgid`${selected.length} item selected`,

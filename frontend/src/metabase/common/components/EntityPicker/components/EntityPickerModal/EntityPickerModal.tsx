@@ -103,6 +103,7 @@ export function EntityPickerModal<TItem extends TypeWithModel>({
       onClose={onClose}
       data-testid="entity-picker-modal"
       trapFocus={trapFocus}
+      zIndex={400} // needed to put this above the BulkActionsToast
       closeOnEscape={false} // we're doing this manually in useWindowEvent
     >
       <Modal.Overlay />
