@@ -15,6 +15,7 @@ import ModalWithTrigger from "metabase/components/ModalWithTrigger";
 import SchedulePicker from "metabase/containers/SchedulePicker";
 import Button from "metabase/core/components/Button";
 import Radio from "metabase/core/components/Radio";
+import ButtonsS from "metabase/css/components/buttons.module.css";
 import CS from "metabase/css/core/index.css";
 import User from "metabase/entities/users";
 import { alertIsValid } from "metabase/lib/alert";
@@ -42,6 +43,7 @@ import {
   getDefaultAlert,
 } from "metabase-lib/v1/Alert";
 
+import AlertModalsS from "./AlertModals.module.css";
 import { AlertModalFooter, DangerZone } from "./AlertModals.styled";
 
 const getScheduleFromChannel = channel =>
@@ -380,7 +382,18 @@ export class DeleteAlertSection extends Component {
     const { onDeleteAlert } = this.props;
 
     return (
-      <DangerZone className="DangerZone mt4 pt4 mb2 p3 rounded bordered relative">
+      <DangerZone
+        className={cx(
+          AlertModalsS.AlertModalsBorder,
+          CS.bordered,
+          CS.mt4,
+          CS.pt4,
+          CS.mb2,
+          CS.p3,
+          CS.rounded,
+          CS.relative,
+        )}
+      >
         <h3
           className={cx(CS.textError, CS.absolute, CS.top, CS.bgWhite, CS.px1)}
           style={{ marginTop: "-12px" }}
@@ -392,7 +405,12 @@ export class DeleteAlertSection extends Component {
             <ModalWithTrigger
               ref={ref => (this.deleteModal = ref)}
               as={Button}
-              triggerClasses="Button--danger flex-align-right flex-no-shrink align-self-end"
+              triggerClasses={cx(
+                ButtonsS.ButtonDanger,
+                CS.flexAlignRight,
+                CS.flexNoShrink,
+                "align-self-end",
+              )}
               triggerElement={t`Delete this alert`}
             >
               <DeleteModalWithConfirm
@@ -627,8 +645,27 @@ function RawDataAlertTipInner(props) {
   const showMultiSeriesGoalAlert = goalEnabled && isMultiSeries;
 
   return (
-    <div className="border-row-divider p3 flex align-center">
-      <div className="circle flex align-center justify-center bg-light p2 mr2 text-medium">
+    <div
+      className={cx(
+        AlertModalsS.AlertModalsBorder,
+        CS.borderRowDivider,
+        CS.p3,
+        CS.flex,
+        CS.alignCenter,
+      )}
+    >
+      <div
+        className={cx(
+          AlertModalsS.AlertModalsBorder,
+          CS.flex,
+          CS.alignCenter,
+          CS.justifyCenter,
+          CS.p2,
+          CS.mr2,
+          CS.textMedium,
+          "circle bg-light",
+        )}
+      >
         <Icon name="lightbulb" size="20" />
       </div>
       {showMultiSeriesGoalAlert ? <MultiSeriesAlertTip /> : <NormalAlertTip />}
