@@ -251,9 +251,10 @@ export const PLUGIN_MODERATION = {
 };
 
 export const PLUGIN_CACHING = {
+  cacheTTLFormField: null as any,
   dashboardCacheTTLFormField: null,
   questionCacheTTLFormField: null,
-  getQuestionsImplicitCacheTTL: (_question?: any) => null,
+  getQuestionsImplicitCacheTTL: (question: any) => null as number | null,
   QuestionCacheSection: PluginPlaceholder,
   DashboardCacheSection: PluginPlaceholder,
   DatabaseCacheTimeField: PluginPlaceholder,
@@ -261,7 +262,7 @@ export const PLUGIN_CACHING = {
   hasQuestionCacheSection: (_question: Question) => false,
   canConfigureDatabase: () => false,
   showAd: true,
-  explanation: t`Pick the policy for when cached query results should be invalidated.`,
+  explanation: null as ReactNode,
 };
 
 export const PLUGIN_REDUCERS: {

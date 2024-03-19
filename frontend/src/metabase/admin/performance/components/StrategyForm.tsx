@@ -6,13 +6,12 @@ import _ from "underscore";
 // BUG: Errors are not displayed on the submit button when the input is invalid
 // To trigger an error, enter '1e5'
 
-import type { FormState } from "metabase/forms";
 import {
   Form,
   FormRadioGroup,
   FormSubmitButton,
   FormTextInput,
-  useFormContext,
+  useFormContext
 } from "metabase/forms";
 import { color } from "metabase/lib/colors";
 import {
@@ -23,7 +22,7 @@ import {
   Radio,
   Stack,
   Text,
-  Title,
+  Title
 } from "metabase/ui";
 
 import type { ModelId, Strat } from "../types";
@@ -31,23 +30,24 @@ import { Strategies } from "../types";
 
 export const StrategyForm = ({
   targetId,
-  setIsStrategyFormDirty,
+  setIsDirty: setIsStrategyFormDirty,
 }: {
   targetId: ModelId | null;
-  setIsStrategyFormDirty: (isDirty: boolean) => void;
+  setIsDirty: (isDirty: boolean) => void;
 }) => {
   const { dirty, values } = useFormikContext<Strat>();
   const selectedStrategyType = values.type;
 
-  const [formState, setFormState] = useState<FormState>({
-    status: "idle",
-  });
+  // TODO: Remove this dead code?
+  // const [formState, setFormState] = useState<FormState>({
+  //   status: "idle",
+  // });
 
-  useEffect(() => {
-    if (dirty && formState.status === "fulfilled") {
-      setFormState({ status: "idle" });
-    }
-  }, [dirty, formState.status]);
+  // useEffect(() => {
+  //   if (dirty && formState.status === "fulfilled") {
+  //     setFormState({ status: "idle" });
+  //   }
+  // }, [dirty, formState.status]);
 
   useEffect(() => {
     setIsStrategyFormDirty(dirty);
@@ -62,18 +62,18 @@ export const StrategyForm = ({
         justifyContent: "space-between",
       }}
     >
-      <Stack p="lg" spacing="xl" maw="24rem">
+      <Stack p="lg" spacing="xl" maw="27.5rem">
         <StrategySelector targetId={targetId} />
         {selectedStrategyType === "ttl" && (
           <>
-            <Stack spacing="sm">
+            <Stack spacing="xs">
               <div>
                 <Title order={4}>{t`Minimum query duration`}</Title>
                 {t`Metabase will cache all saved questions with an average query execution time greater than this many seconds.`}
               </div>
               <PositiveNumberInput fieldName="min_duration" />
             </Stack>
-            <Stack spacing="sm">
+            <Stack spacing="xs">
               <div>
                 <Title
                   order={4}
@@ -131,22 +131,27 @@ export const FormButtons = () => {
   const { dirty } = useFormikContext<Strat>();
   const { status } = useFormContext();
 
-  const isRequestPending = status === "pending";
-  const [wasRequestRecentlyPending, setWasRequestRecentlyPending] =
+  const isFormPending = status === "pending";
+  const [wasFormEverPending, setWasFormEverPending ] = useState(false);
+  const [wasFormRecentlyPending, setWasFormRecentlyPending] =
     useState(false);
 
   useEffect(() => {
-    if (!isRequestPending) {
-      setWasRequestRecentlyPending(true);
-      const timeout = setTimeout(() => {
-        setWasRequestRecentlyPending(false);
-      }, 3000);
-      return () => clearTimeout(timeout);
+    if (isFormPending) {
+      setWasFormEverPending(true);
+    } else {
+      if (wasFormEverPending) {
+        setWasFormRecentlyPending(true);
+        const timeout = setTimeout(() => {
+          setWasFormRecentlyPending(false);
+        }, 3000);
+        return () => clearTimeout(timeout);
+      }
     }
-  }, [isRequestPending]);
+  }, [isFormPending, wasFormEverPending]);
 
   const shouldShowButtons =
-    dirty || isRequestPending || wasRequestRecentlyPending;
+    dirty || isFormPending || wasFormRecentlyPending;
 
   if (!shouldShowButtons) {
     return null;
@@ -164,7 +169,7 @@ export const FormButtons = () => {
       spacing="md"
     >
       <Button
-        disabled={!dirty || isRequestPending}
+        disabled={!dirty || isFormPending}
         type="reset"
       >{t`Discard changes`}</Button>
       <FormSubmitButton

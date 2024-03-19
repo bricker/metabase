@@ -300,9 +300,6 @@ export const StrategyEditorForDatabases = ({
     <TabWrapper role="region" aria-label="Data caching settings">
       <Stack spacing="xl" lh="1.5rem" maw="32rem" mb="1.5rem">
         <aside>{PLUGIN_CACHING.explanation}</aside>
-        <Title order={4}>
-          Pick the policy for when cached query results should be invalidated.
-        </Title>
       </Stack>
       <Modal isOpen={showCancelEditWarning}>
         <LeaveConfirmationModalContent
@@ -376,7 +373,7 @@ export const StrategyEditorForDatabases = ({
             >
               <StrategyForm
                 targetId={targetId}
-                setIsStrategyFormDirty={setIsStrategyFormDirty}
+                setIsDirty={setIsStrategyFormDirty}
               />
             </FormProvider>
           )}
