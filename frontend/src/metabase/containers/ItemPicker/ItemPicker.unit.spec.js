@@ -85,6 +85,7 @@ const COLLECTION_OTHER_USERS = createMockCollection({
 const DASHBOARD = {
   REGULAR: createMockDashboard({
     id: 1,
+    collection_id: null,
     name: "Regular dashboard",
     model: "dashboard",
   }),
