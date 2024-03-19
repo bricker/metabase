@@ -11,7 +11,6 @@ import {
 } from "e2e/support/cypress_sample_instance_data";
 import {
   restore,
-  modal,
   popover,
   openOrdersTable,
   navigationSidebar,
@@ -397,14 +396,9 @@ describe("scenarios > collection defaults", () => {
         cy.findByText("Move").click();
       });
 
-      modal().within(() => {
-        cy.findByText("My personal collection")
-          .parent()
-          .find(".Icon-chevronright")
-          .click();
-
+      entityPickerModal().within(() => {
+        cy.findByText("Bobby Tables's Personal Collection").click();
         cy.findByText(COLLECTION).click();
-
         cy.button("Move").should("not.be.disabled");
       });
     });
@@ -531,9 +525,9 @@ describe("scenarios > collection defaults", () => {
             .button("Move")
             .click();
 
-          modal().within(() => {
+          entityPickerModal().within(() => {
             cy.findByText("First collection").click();
-            cy.button("Move").click();
+            cy.findByText("Move").click();
           });
 
           // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage

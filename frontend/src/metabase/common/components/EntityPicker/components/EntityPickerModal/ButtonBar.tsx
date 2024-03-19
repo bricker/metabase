@@ -41,7 +41,9 @@ export const ButtonBar = ({
     >
       <Flex gap="md">{actionButtons}</Flex>
       <Flex gap="md">
-        <Button onClick={onCancel}>{cancelButtonText ?? t`Cancel`}</Button>
+        <Button onClick={onCancel} type="button">
+          {cancelButtonText ?? t`Cancel`}
+        </Button>
         <Button
           ml={1}
           variant="filled"

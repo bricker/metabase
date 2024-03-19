@@ -312,8 +312,8 @@ describe("scenarios > dashboard", () => {
         cy.findByTestId("edit-bar").button("Cancel").click();
         openDashboardMenu();
         popover().findByText("Move").click();
-        modal().within(() => {
-          cy.findByRole("heading", { name: myPersonalCollection }).click();
+        entityPickerModal().within(() => {
+          cy.findByText("Bobby Tables's Personal Collection").click();
           cy.button("Move").click();
         });
 
@@ -330,9 +330,9 @@ describe("scenarios > dashboard", () => {
         cy.findByTestId("edit-bar").button("Cancel").click();
         openDashboardMenu();
         popover().findByText("Move").click();
-        modal().within(() => {
-          cy.findByRole("heading", { name: "Our analytics" }).click();
-          cy.button("Move").click();
+        entityPickerModal().within(() => {
+          cy.findByText("Our analytics").click();
+          cy.findByText("Move").click();
         });
 
         editDashboard();
