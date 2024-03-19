@@ -1,11 +1,12 @@
 import { useFormikContext } from "formik";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { t } from "ttag";
 import _ from "underscore";
 
 // BUG: Errors are not displayed on the submit button when the input is invalid
 // To trigger an error, enter '1e5'
 
+import type { FormState } from "metabase/forms";
 import {
   Form,
   FormRadioGroup,
@@ -29,16 +30,28 @@ import type { ModelId, Strat } from "../types";
 import { Strategies } from "../types";
 
 export const StrategyForm = ({
-  isRequestPending,
-  wasRequestRecentlyPending,
   targetId,
+  setIsStrategyFormDirty,
 }: {
-  isRequestPending: boolean;
-  wasRequestRecentlyPending: boolean;
   targetId: ModelId | null;
+  setIsStrategyFormDirty: (isDirty: boolean) => void;
 }) => {
-  const { values } = useFormikContext<Strat>();
+  const { dirty, values } = useFormikContext<Strat>();
   const selectedStrategyType = values.type;
+
+  const [formState, setFormState] = useState<FormState>({
+    status: "idle",
+  });
+
+  useEffect(() => {
+    if (dirty && formState.status === "fulfilled") {
+      setFormState({ status: "idle" });
+    }
+  }, [dirty, formState.status]);
+
+  useEffect(() => {
+    setIsStrategyFormDirty(dirty);
+  }, [dirty, setIsStrategyFormDirty]);
 
   return (
     <Form
@@ -49,7 +62,7 @@ export const StrategyForm = ({
         justifyContent: "space-between",
       }}
     >
-      <Stack p="lg" spacing="xl">
+      <Stack p="lg" spacing="xl" maw="24rem">
         <StrategySelector targetId={targetId} />
         {selectedStrategyType === "ttl" && (
           <>
@@ -91,10 +104,7 @@ export const StrategyForm = ({
               )}
                 */}
       </Stack>
-      <FormButtons
-        isRequestPending={isRequestPending}
-        wasRequestRecentlyPending={wasRequestRecentlyPending}
-      />
+      <FormButtons />
     </Form>
   );
 };
@@ -115,29 +125,28 @@ export const StrategyForm = ({
 // <Select data={durations} />
 // </section>
 
-export const FormButtons = ({
-  isRequestPending,
-  wasRequestRecentlyPending,
-}: {
-  isRequestPending: boolean;
-  wasRequestRecentlyPending: boolean;
-}) => {
+export const FormButtons = () => {
   const { dirty } = useFormikContext<Strat>();
-  const context = useFormContext();
+  const { status } = useFormContext();
 
-  useEffect(() => {
-    if (dirty) {
-      context.status = "idle";
-    }
-  }, [dirty, context]);
+  const isRequestPending = status === "pending";
+  const [wasRequestRecentlyPending, setWasRequestRecentlyPending] =
+    useState(false);
 
   useEffect(() => {
     if (isRequestPending) {
-      context.status = "pending";
+      setWasRequestRecentlyPending(true);
+      const timeout = setTimeout(() => {
+        setWasRequestRecentlyPending(false);
+      }, 2000);
+      return () => clearTimeout(timeout);
     }
-  }, [isRequestPending, context]);
+  }, [isRequestPending]);
 
-  if (!dirty && !isRequestPending && !wasRequestRecentlyPending) {
+  const shouldShowButtons =
+    dirty || isRequestPending || wasRequestRecentlyPending;
+
+  if (!shouldShowButtons) {
     return null;
   }
 
@@ -155,7 +164,6 @@ export const FormButtons = ({
       <Button variant="subtle" type="reset">{t`Discard changes`}</Button>
       <FormSubmitButton
         label={t`Save changes`}
-        disabled={isRequestPending}
         successLabel={
           <Group spacing="xs">
             <Icon name="check" /> {t`Saved`}

@@ -19,11 +19,11 @@ import { useDatabaseListQuery } from "metabase/common/hooks";
 import { LeaveConfirmationModalContent } from "metabase/components/LeaveConfirmationModal";
 import LoadingAndErrorWrapper from "metabase/components/LoadingAndErrorWrapper";
 import Modal from "metabase/components/Modal";
-import { FormProvider } from "metabase/forms";
+import { FormProvider, FormSubmitButton } from "metabase/forms";
 import { color } from "metabase/lib/colors";
 import { PLUGIN_CACHING } from "metabase/plugins";
 import { CacheConfigApi } from "metabase/services";
-import { Button, Grid, Stack, Title } from "metabase/ui";
+import { Box, Grid, Stack, Title } from "metabase/ui";
 
 import { useRequests } from "../hooks/useRequests";
 import type {
@@ -38,9 +38,9 @@ import type {
 import { isValidStrategy } from "../types";
 import { strategyValidationSchema } from "../validation";
 
-import { DatabaseFormTrigger } from "./DatabaseFormTrigger";
 import { Panel, TabWrapper } from "./StrategyEditorForDatabases.styled";
 import { StrategyForm } from "./StrategyForm";
+import { StrategyFormLauncher } from "./StrategyFormLauncher";
 
 export const StrategyEditorForDatabases = ({
   tabsRef,
@@ -144,33 +144,13 @@ export const StrategyEditorForDatabases = ({
 
   const { showSuccessToast, showErrorToast } = useRequests();
 
-  const [isRequestPending, setIsRequestPending] = useState(false);
-
-  const [wasRequestRecentlyPending, setWasRequestRecentlyPending] =
-    useState(false);
-
-  useEffect(() => {
-    // Ensure this fires only after isRequestPending becomes false from true
-    if (!isRequestPending) {
-      setWasRequestRecentlyPending(true);
-      const timeout = setTimeout(() => {
-        setWasRequestRecentlyPending(false);
-      }, 2000);
-      return () => {
-        clearTimeout(timeout);
-      };
-    }
-  }, [isRequestPending]);
-
-  useEffect(() => {
-    setWasRequestRecentlyPending(false);
-  }, [targetId]);
-
   useEffect(() => {
     if (canOnlyConfigureRootStrategy) {
       setTargetId("root");
     }
   }, [canOnlyConfigureRootStrategy]);
+
+  const shouldShowStrategyFormLaunchers = !canOnlyConfigureRootStrategy;
 
   const setStrategy = useCallback(
     async (model: Model, model_id: number, newStrategy: Strat | null) => {
@@ -181,33 +161,18 @@ export const StrategyEditorForDatabases = ({
       const otherConfigs = configs.filter(
         config => config.model_id !== model_id,
       );
-
-      const onSuccess = async () => {
-        setIsRequestPending(false);
-      };
-      const onError = async () => {
-        setIsRequestPending(false);
-      };
-
-      setIsRequestPending(true);
       if (newStrategy) {
         const newConfig: Config = {
           ...baseConfig,
           strategy: newStrategy,
         };
-        await CacheConfigApi.update(newConfig)
-          .then(onSuccess)
-          .then(() => {
-            setConfigs([...otherConfigs, newConfig]);
-          })
-          .catch(onError);
+        await CacheConfigApi.update(newConfig).then(() => {
+          setConfigs([...otherConfigs, newConfig]);
+        });
       } else {
-        await CacheConfigApi.delete(baseConfig, { hasBody: true })
-          .then(onSuccess)
-          .then(() => {
-            setConfigs(otherConfigs);
-          })
-          .catch(onError);
+        await CacheConfigApi.delete(baseConfig, { hasBody: true }).then(() => {
+          setConfigs(otherConfigs);
+        });
       }
     },
     [configs],
@@ -240,6 +205,7 @@ export const StrategyEditorForDatabases = ({
   }, [tabsRef, setTabsHeight, areDatabasesLoading, areConfigsLoading]);
 
   const [showCancelEditWarning, setShowCancelEditWarning] = useState(false);
+  const [isStrategyFormDirty, setIsStrategyFormDirty] = useState(false);
 
   useEffect(
     /**
@@ -297,10 +263,10 @@ export const StrategyEditorForDatabases = ({
       return;
     }
 
+    // TODO: Switch to using button label to display status
     const onSuccess = async () => {
       await showSuccessToast();
     };
-
     const onError = async () => {
       await showErrorToast();
       setConfigs(originalConfigs);
@@ -341,132 +307,83 @@ export const StrategyEditorForDatabases = ({
   };
 
   return (
-    <FormProvider<Strat | Record<string, never>>
-      key={targetId}
-      initialValues={savedStrategy ?? { type: "inherit" }}
-      validationSchema={strategyValidationSchema}
-      onSubmit={handleFormSubmit}
-      enableReinitialize={true}
-    >
-      <TabWrapper role="region" aria-label="Data caching settings">
-        <Stack spacing="md" lh="1rem" maw="32rem" mb="1.5rem">
-          <aside>{PLUGIN_CACHING.explanation}</aside>
-          <Title order={4}>
-            Pick the policy for when cached query results should be invalidated.
-          </Title>
-        </Stack>
-        <Modal isOpen={showCancelEditWarning}>
-          <LeaveConfirmationModalContent
-            onAction={() => onConfirmDiscardChanges.current()}
-            onClose={() => setShowCancelEditWarning(false)}
-          />
-        </Modal>
-        <Grid
-          style={{
-            display: "grid",
-            gridTemplateColumns: "1fr 1fr",
-            overflow: "hidden",
-          }}
-          w="100%"
-          mx="0"
-          mb="1rem"
-        >
-          {!canOnlyConfigureRootStrategy && (
-            <Panel role="group" style={{ backgroundColor: color("bg-light") }}>
-              <Stack
-                p="lg"
-                spacing="lg"
-                style={{ borderBottom: `1px solid ${color("border")}` }}
-              >
-                <DatabaseFormTrigger
-                  forId="root"
-                  title={t`Default policy`}
+    <TabWrapper role="region" aria-label="Data caching settings">
+      <Stack spacing="xl" lh="1.5rem" maw="32rem" mb="1.5rem">
+        <aside>{PLUGIN_CACHING.explanation}</aside>
+        <Title order={4}>
+          Pick the policy for when cached query results should be invalidated.
+        </Title>
+      </Stack>
+      <Modal isOpen={showCancelEditWarning}>
+        <LeaveConfirmationModalContent
+          onAction={() => onConfirmDiscardChanges.current()}
+          onClose={() => setShowCancelEditWarning(false)}
+        />
+      </Modal>
+      <Grid
+        style={{
+          display: "grid",
+          gridTemplateColumns: "minmax(auto, 30rem) 1fr",
+          overflow: "hidden",
+        }}
+        w="100%"
+        mx="0"
+        mb="1rem"
+      >
+        {shouldShowStrategyFormLaunchers && (
+          <Panel role="group" style={{ backgroundColor: color("bg-light") }}>
+            <Box
+              p="lg"
+              style={{ borderBottom: `1px solid ${color("border")}` }}
+            >
+              <StrategyFormLauncher
+                forId="root"
+                title={t`Default policy`}
+                savedConfigs={savedConfigs}
+                targetId={targetId}
+                safelyUpdateTargetId={safelyUpdateTargetId}
+                isStrategyFormDirty={isStrategyFormDirty}
+              />
+            </Box>
+            <Stack p="lg" spacing="md">
+              {databases?.map(db => (
+                <StrategyFormLauncher
+                  forId={db.id}
+                  title={db.name}
+                  key={db.id.toString()}
                   savedConfigs={savedConfigs}
                   targetId={targetId}
                   safelyUpdateTargetId={safelyUpdateTargetId}
+                  isStrategyFormDirty={isStrategyFormDirty}
                 />
-              </Stack>
-              <Stack p="lg" spacing="lg">
-                {databases?.map(db => (
-                  <DatabaseFormTrigger
-                    forId={db.id}
-                    title={db.name}
-                    key={db.id.toString()}
-                    savedConfigs={savedConfigs}
-                    targetId={targetId}
-                    safelyUpdateTargetId={safelyUpdateTargetId}
-                  />
-                ))}
-                <Button
+              ))}
+              <FormProvider initialValues={{}} onSubmit={clearDBOverrides}>
+                <FormSubmitButton
+                  label={t`Reset all to default`}
                   color={color("error")}
                   variant="subtle"
-                  onClick={clearDBOverrides}
-                >
-                  {t`Reset all to default`}
-                </Button>
-              </Stack>
-            </Panel>
-          )}
-          <Panel>
-            {showStrategyForm && (
+                />
+              </FormProvider>
+            </Stack>
+          </Panel>
+        )}
+        <Panel>
+          {showStrategyForm && (
+            <FormProvider<Strat | Record<string, never>>
+              key={targetId}
+              initialValues={savedStrategy ?? { type: "inherit" }}
+              validationSchema={strategyValidationSchema}
+              onSubmit={handleFormSubmit}
+              enableReinitialize={true}
+            >
               <StrategyForm
                 targetId={targetId}
-                isRequestPending={isRequestPending}
-                wasRequestRecentlyPending={wasRequestRecentlyPending}
+                setIsStrategyFormDirty={setIsStrategyFormDirty}
               />
-            )}
-          </Panel>
-        </Grid>
-      </TabWrapper>
-    </FormProvider>
+            </FormProvider>
+          )}
+        </Panel>
+      </Grid>
+    </TabWrapper>
   );
 };
-
-// const RootStrategyChip = ({
-//   rootStrategy,
-//   rootStrategyIconName,
-//   targetId,
-//   safelyUpdateTargetId,
-// }: {
-//   rootStrategy: Strat;
-//   rootStrategyIconName: IconName | undefined;
-//   targetId: ModelId | null;
-//   safelyUpdateTargetId: SafelyUpdateTargetId;
-// }) => {
-//   const isFormDirty = useFormikContext().dirty;
-//   return (
-//     <Chip
-//       styles={{
-//         inner: {
-//           display: "flex",
-//           flex: 1,
-//           flexFlow: "row nowrap",
-//           justifyContent: "flex-start",
-//         },
-//         label: {
-//           display: "flex",
-//           flex: 1,
-//           flexFlow: "row nowrap",
-//         },
-//       }}
-//       py="0.25rem"
-//       style={{
-//         paddingInlineStart: rootStrategyIconName ? "0.5rem" : ".65rem",
-//         paddingInlineEnd: "0.5rem",
-//       }}
-//       lh="1.5rem"
-//       rightIcon={
-//         <FixedSizeIcon name="ellipsis" style={{ paddingInlineEnd: "2px" }} />
-//       }
-//       variant={targetId === "root" ? "filled" : "white"}
-//       onClick={() => {
-//         if (targetId === "root") {
-//           return;
-//         }
-//         safelyUpdateTargetId("root", isFormDirty);
-//       }}
-//     >
-//       {getShortStrategyLabel(rootStrategy)}
-//     </Chip>
-//   );
-// };
