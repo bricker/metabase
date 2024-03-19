@@ -66,21 +66,23 @@ export const StrategyForm = ({
         <StrategySelector targetId={targetId} />
         {selectedStrategyType === "ttl" && (
           <>
-            <section>
-              <Title order={4}>{t`Minimum query duration`}</Title>
-              <p>
+            <Stack spacing="sm">
+              <div>
+                <Title order={4}>{t`Minimum query duration`}</Title>
                 {t`Metabase will cache all saved questions with an average query execution time greater than this many seconds.`}
-              </p>
+              </div>
               <PositiveNumberInput fieldName="min_duration" />
-            </section>
-            <section>
-              <Title order={4}>{t`Cache time-to-live (TTL) multiplier`}</Title>
-              {/* TODO: Add link to example */}
-              <p>
+            </Stack>
+            <Stack spacing="sm">
+              <div>
+                <Title
+                  order={4}
+                >{t`Cache time-to-live (TTL) multiplier`}</Title>
+                {/* TODO: Add link to example */}
                 {t`To determine how long each cached result should stick around, we take that query's average execution time and multiply that by what you input here. The result is how many seconds the cache should remain valid for.`}
-              </p>
+              </div>
               <PositiveNumberInput fieldName="multiplier" />
-            </section>
+            </Stack>
           </>
         )}
         {selectedStrategyType === "duration" && (
@@ -161,7 +163,10 @@ export const FormButtons = () => {
       bg={color("white")}
       spacing="md"
     >
-      <Button variant="subtle" type="reset">{t`Discard changes`}</Button>
+      <Button
+        disabled={!dirty || isRequestPending}
+        type="reset"
+      >{t`Discard changes`}</Button>
       <FormSubmitButton
         label={t`Save changes`}
         successLabel={

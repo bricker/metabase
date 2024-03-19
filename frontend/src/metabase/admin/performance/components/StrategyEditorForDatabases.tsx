@@ -25,7 +25,6 @@ import { PLUGIN_CACHING } from "metabase/plugins";
 import { CacheConfigApi } from "metabase/services";
 import { Box, Flex, Grid, Stack, Text, Title } from "metabase/ui";
 
-import { useRequests } from "../hooks/useRequests";
 import type {
   Config,
   DurationStrategy,
@@ -142,8 +141,6 @@ export const StrategyEditorForDatabases = ({
   const targetConfig = savedConfigs.get(targetId);
   const savedStrategy = targetConfig?.strategy;
 
-  const { showSuccessToast, showErrorToast } = useRequests();
-
   useEffect(() => {
     if (canOnlyConfigureRootStrategy) {
       setTargetId("root");
@@ -250,7 +247,6 @@ export const StrategyEditorForDatabases = ({
   };
 
   const clearDBOverrides = useCallback(async () => {
-    console.log("clearDBOverrides");
     const originalConfigs = [...configs];
     setConfigs(configs => configs.filter(({ model }) => model !== "database"));
 
@@ -264,22 +260,15 @@ export const StrategyEditorForDatabases = ({
       return;
     }
 
-    // TODO: Switch to using button label to display status
-    const onSuccess = async () => {
-      await showSuccessToast();
-    };
     const onError = async () => {
-      await showErrorToast();
       setConfigs(originalConfigs);
     };
 
     await CacheConfigApi.delete(
       { model_id: ids, model: "database" },
       { hasBody: true },
-    )
-      .then(onSuccess)
-      .catch(onError);
-  }, [configs, setConfigs, showErrorToast, showSuccessToast]);
+    ).catch(onError);
+  }, [configs, setConfigs]);
 
   if (errorWhenLoadingConfigs || areConfigsLoading) {
     return showLoadingSpinner ? (
