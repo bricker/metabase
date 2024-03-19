@@ -1,14 +1,17 @@
 import { useFormikContext } from "formik";
+import { useEffect, useState } from "react";
 import { t } from "ttag";
 import _ from "underscore";
 
-// BUG: the confirmation modal is no longer working. time to add some tests so i can catch regressions like this!
+// BUG: Errors are not displayed on the submit button when the input is invalid
+// To trigger an error, enter '1e5'
 
 import {
   Form,
   FormRadioGroup,
   FormSubmitButton,
   FormTextInput,
+  useFormContext,
 } from "metabase/forms";
 import { color } from "metabase/lib/colors";
 import {
@@ -87,9 +90,10 @@ export const StrategyForm = ({
               )}
                 */}
       </Stack>
-      {(useFormikContext().dirty ||
-        isRequestPending ||
-        wasRequestRecentlyPending) && <FormButtons />}
+      <FormButtons
+        isRequestPending={isRequestPending}
+        wasRequestRecentlyPending={wasRequestRecentlyPending}
+      />
     </Form>
   );
 };
@@ -110,8 +114,25 @@ export const StrategyForm = ({
 // <Select data={durations} />
 // </section>
 
-export const FormButtons = () => {
-  const { values } = useFormikContext();
+export const FormButtons = ({
+  isRequestPending,
+  wasRequestRecentlyPending,
+}: {
+  isRequestPending: boolean;
+  wasRequestRecentlyPending: boolean;
+}) => {
+  const { dirty } = useFormikContext<Strat>();
+  const context = useFormContext();
+  const [hovered, setHovered] = useState(false);
+  useEffect(() => {
+    if (dirty) {
+      context.status = "idle";
+    }
+  }, [dirty, context]);
+
+  if (!dirty && !isRequestPending && !wasRequestRecentlyPending && !hovered) {
+    return null;
+  }
 
   return (
     <Group
@@ -123,18 +144,14 @@ export const FormButtons = () => {
       p="1rem"
       bg={color("white")}
       spacing="md"
+      // to keep this visible when hovered
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
     >
-      <Button
-        variant="subtle"
-        onClick={() => {
-          // FIXME:
-          alert("not yet implemented");
-        }}
-      >{t`Discard changes`}</Button>
+      <Button variant="subtle" type="reset">{t`Discard changes`}</Button>
       <FormSubmitButton
-        // Ensure that the button is recreated when the form becomes dirty
-        key={JSON.stringify(values)}
         label={t`Save changes`}
+        disabled={!dirty || isRequestPending}
         successLabel={
           <Group spacing="xs">
             <Icon name="check" /> {t`Saved`}
@@ -142,7 +159,7 @@ export const FormButtons = () => {
         }
         activeLabel={
           <Group spacing="sm">
-            <Loader style={{ filter: "brightness(300%)" }} size="xs" />
+            <Loader size="xs" />
             {t`Saving...`}
           </Group>
         }
