@@ -4,6 +4,13 @@ title: Driver interface changelog
 
 # Driver Interface Changelog
 
+## Metabase 0.51.0
+
+- The multimethod `metabase.driver/truncate!` has been added. This method is used to delete a table's rows in the most
+  efficient way possible, even if this means skipping triggers or resetting the auto_increment counters.
+  This is currently only required for drivers that support the `:uploads` feature, and has a default implementation for
+  JDBC-based drivers.
+
 ## Metabase 0.49.1
 
 - Another driver feature has been added: `describe-fields`. If a driver opts-in to supporting this feature, The
