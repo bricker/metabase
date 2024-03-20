@@ -154,8 +154,7 @@
         sql        (sql/format {:truncate table-name}
                                :quoted true
                                :dialect (sql.qp/quote-style driver))]
-    (jdbc/with-db-transaction [conn (sql-jdbc.conn/db->pooled-connection-spec db-id)]
-      (qp.writeback/execute-write-sql! db-id sql))))
+    (qp.writeback/execute-write-sql! db-id sql)))
 
 (defmethod driver/insert-into! :sql-jdbc
   [driver db-id table-name column-names values]
