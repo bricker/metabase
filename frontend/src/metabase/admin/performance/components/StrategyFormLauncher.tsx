@@ -2,7 +2,7 @@ import { useState } from "react";
 import { t } from "ttag";
 
 import { color } from "metabase/lib/colors";
-import { FixedSizeIcon, Flex, Group, Title, Tooltip } from "metabase/ui";
+import { FixedSizeIcon, Flex, Title, Tooltip } from "metabase/ui";
 
 import type {
   GetConfigByModelId,
@@ -11,7 +11,7 @@ import type {
 } from "../types";
 import { getShortStrategyLabel } from "../types";
 
-import { Chip } from "./StrategyEditorForDatabases.styled";
+import { PolicyToken } from "./StrategyEditorForDatabases.styled";
 
 export const StrategyFormLauncher = ({
   forId,
@@ -44,12 +44,11 @@ export const StrategyFormLauncher = ({
       ? "white"
       : "outline";
   return (
-    <Group
-      spacing="sm"
+    <Flex
       w="100%"
       p="md"
-      fw="bold"
       bg={forId === "root" ? color("bg-medium") : undefined}
+      justify="space-between"
       style={{
         border: `1px solid ${color(forId === "root" ? "bg-medium" : "border")}`,
         borderRadius: ".5rem",
@@ -64,43 +63,36 @@ export const StrategyFormLauncher = ({
           {title}
         </Title>
       </Flex>
-      <Chip
-        onClick={() => {
-          if (targetId === forId) {
-            return;
-          }
-          safelyUpdateTargetId(forId, isStrategyFormDirty);
-        }}
-        // The hover state is in a state variable so that it can determine the variant prop
-        onMouseOver={() => setHovered(true)}
-        onMouseOut={() => setHovered(false)}
-        variant={buttonVariant}
-        style={{
-          marginInlineStart: "auto",
-        }}
-        p="0.25rem .75rem"
-        styles={{
-          root: {
-            borderRadius: "7rem",
-          },
-          inner: {
-            width: "100%",
-            justifyContent: "space-between",
-          },
-        }}
+      <Tooltip
+        position="bottom"
+        disabled={!inheritsRootStrategy}
+        label={t`Inheriting from default policy`}
       >
-        <Tooltip
-          position="bottom"
-          disabled={!inheritsRootStrategy}
-          label={t`Inheriting from default policy`}
+        <PolicyToken
+          onClick={() => {
+            if (targetId !== forId) {
+              safelyUpdateTargetId(forId, isStrategyFormDirty);
+            }
+          }}
+          // The hover state is in a React state variable so that it can determine the variant prop
+          onMouseOver={() => setHovered(true)}
+          onMouseOut={() => setHovered(false)}
+          variant={buttonVariant}
+          fw={inheritsRootStrategy ? "normal" : "bold"}
+          p="0.25rem .75rem"
+          styles={{
+            root: {
+              borderRadius: "7rem",
+            },
+          }}
         >
           <Flex wrap="nowrap" lh="1.5rem" gap=".5rem">
             {getShortStrategyLabel(
               inheritsRootStrategy ? rootStrategy : strategy,
             )}
           </Flex>
-        </Tooltip>
-      </Chip>
-    </Group>
+        </PolicyToken>
+      </Tooltip>
+    </Flex>
   );
 };

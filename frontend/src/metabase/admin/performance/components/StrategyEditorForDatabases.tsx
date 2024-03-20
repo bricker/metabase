@@ -49,17 +49,12 @@ export const StrategyEditorForDatabases = ({
   setTabsHeight?: (height: number) => void;
 }) => {
   const {
-    data: unfilteredDatabases = null,
+    data: databases = null,
     error: errorWhenLoadingDatabases,
     isLoading: areDatabasesLoading,
   } = useDatabaseListQuery();
 
-  const configurableDatabases = unfilteredDatabases?.filter(
-    PLUGIN_CACHING.configurableDatabasesFilter,
-  );
-
-  const canOnlyConfigureRootStrategy = configurableDatabases?.length === 0;
-  const databases = configurableDatabases;
+  const { canOnlyConfigureRootStrategy } = PLUGIN_CACHING;
 
   const {
     value: configsFromAPI,

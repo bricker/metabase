@@ -36,12 +36,7 @@ export const PerformanceApp = () => {
           {t`Data caching settings`}
         </Tab>
       </TabsList>
-      <TabsPanel
-        key={tabId}
-        value={tabId}
-        h="calc(100% - 41px)"
-        p="1rem 2.5rem"
-      >
+      <TabsPanel key={tabId} value={tabId} p="1rem 2.5rem">
         <Flex style={{ flex: 1 }} bg="bg-light" h="100%">
           <StrategyEditorForDatabases
             setTabsHeight={setTabsHeight}

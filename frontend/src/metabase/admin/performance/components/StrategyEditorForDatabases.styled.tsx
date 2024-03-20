@@ -29,20 +29,24 @@ export const Panel = styled.div`
   }
 `;
 
-export const Chip = styled(Button)<{ variant: string } & ButtonProps>`
+export const PolicyToken = styled(Button)<{ variant: string } & ButtonProps>`
   cursor: pointer;
   display: flex;
   flex-flow: row nowrap;
   padding: 1rem;
+  border-width: 1px;
+  border-style: solid;
   ${({ variant }) =>
-    `border: 1px solid ${color(
-      variant === "filled" || variant === "outline" ? "brand" : "border",
-    )} ! important`};
+    `${
+      ["filled", "outline"].includes(variant)
+        ? `border-color ${color("brand")} ! important;`
+        : `border-color: ${color("border")} ! important;`
+    }`};
   span {
     gap: 0.5rem;
   }
 `;
-Chip.defaultProps = { radius: "sm" };
+PolicyToken.defaultProps = { radius: "sm" };
 
 export const TabWrapper = styled.div`
   display: grid;

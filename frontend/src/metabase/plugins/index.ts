@@ -274,9 +274,10 @@ export const PLUGIN_CACHING = {
   >,
   isEnabled: () => false,
   hasQuestionCacheSection: (_question: Question) => false,
-  configurableDatabasesFilter: () => false,
+  canOnlyConfigureRootStrategy: true,
   showAd: true,
-  explanation: null as ReactNode,
+  explanation:
+    t`Cache the results of queries to have them display instantly. Here you can choose when cached results should be invalidated.` as ReactNode,
 };
 
 export const PLUGIN_REDUCERS: {
