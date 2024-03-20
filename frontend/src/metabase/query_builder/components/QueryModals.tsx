@@ -239,31 +239,29 @@ class QueryModals extends Component<QueryModalsProps> {
         );
       case MODAL_TYPES.MOVE:
         return (
-          <Modal onClose={onCloseModal}>
-            <MoveModal
-              title={t`Which collection should this be in?`}
-              initialCollectionId={question.collectionId() ?? "root"}
-              onClose={onCloseModal}
-              onMove={(collection: { id: CollectionId }) => {
-                this.props.setQuestionCollection(
-                  { id: question.id() },
-                  { id: collection.id },
-                  {
-                    notify: {
-                      message: (
-                        <QuestionMoveToast
-                          collectionId={collection.id || ROOT_COLLECTION.id}
-                          question={question}
-                        />
-                      ),
-                      undo: false,
-                    },
+          <MoveModal
+            title={t`Which collection should this be in?`}
+            initialCollectionId={question.collectionId() ?? "root"}
+            onClose={onCloseModal}
+            onMove={(collection: { id: CollectionId }) => {
+              this.props.setQuestionCollection(
+                { id: question.id() },
+                { id: collection.id },
+                {
+                  notify: {
+                    message: (
+                      <QuestionMoveToast
+                        collectionId={collection.id || ROOT_COLLECTION.id}
+                        question={question}
+                      />
+                    ),
+                    undo: false,
                   },
-                );
-                onCloseModal();
-              }}
-            />
-          </Modal>
+                },
+              );
+              onCloseModal();
+            }}
+          />
         );
       case MODAL_TYPES.ARCHIVE:
         return (
