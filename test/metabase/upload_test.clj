@@ -1045,18 +1045,18 @@
                           first
                           :value))))))))
 
-(defn update-csv-synchronously!
+(defn- update-csv-synchronously!
   "Wraps [[upload/upload-csv!]] setting [[upload/*sync-synchronously?*]] to `true` for test purposes."
   [options]
   (binding [upload/*sync-synchronously?* true]
     (upload/update-csv! options)))
 
-(defn append-csv!
+(defn- append-csv!
   "Shorthand for synchronously appending to a CSV"
   [options]
   (update-csv-synchronously! (assoc options :action ::upload/append)))
 
-(defn replace-csv!
+(defn- replace-csv!
   "Shorthand for synchronously replacing a CSV"
   [options]
   (update-csv-synchronously! (assoc options :action ::upload/replace)))

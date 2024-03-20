@@ -817,8 +817,7 @@
   "Main entry point for updating an uploaded table with a CSV file.
   This will create an auto-incrementing primary key (auto-pk) column in the table for drivers that supported uploads
   before auto-pk columns were introduced by metabase#36249, if it does not already exist."
-  ;; TODO: update callers to all pass an explicit action, and make it required
-  [{:keys [^File file table-id action] :or {action ::append}}
+  [{:keys [^File file table-id action]}
    :- [:map
        [:table-id ms/PositiveInt]
        [:file (ms/InstanceOfClass File)]
