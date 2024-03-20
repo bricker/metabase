@@ -23,7 +23,7 @@ import { Form, FormProvider, FormSubmitButton } from "metabase/forms";
 import { color } from "metabase/lib/colors";
 import { PLUGIN_CACHING } from "metabase/plugins";
 import { CacheConfigApi } from "metabase/services";
-import { Box, Flex, Grid, Stack, Text, Title } from "metabase/ui";
+import { Box, Flex, Grid, Stack, Text } from "metabase/ui";
 
 import type {
   Config,
@@ -55,7 +55,7 @@ export const StrategyEditorForDatabases = ({
   } = useDatabaseListQuery();
 
   const configurableDatabases = unfilteredDatabases?.filter(
-    PLUGIN_CACHING.canConfigureDatabase,
+    PLUGIN_CACHING.configurableDatabasesFilter,
   );
 
   const canOnlyConfigureRootStrategy = configurableDatabases?.length === 0;
