@@ -4,7 +4,7 @@ title: Driver interface changelog
 
 # Driver Interface Changelog
 
-## Metabase 0.51.0
+## Metabase 0.50.0
 
 - The multimethod `metabase.driver/truncate!` has been added. This method is used to delete a table's rows in the most
   efficient way possible, even if this means skipping triggers or resetting the auto_increment counters.
