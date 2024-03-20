@@ -909,8 +909,8 @@
       (let [file  (upload-test/csv-file-with ["name" "Luke Skywalker" "Darth Vader"] (mt/random-name))
             table (upload-test/create-upload-table!)]
         (mt/with-current-user (mt/user->id :crowberto)
-          (append-csv! {:id   (:id table)
-                        :file file}))))))
+          (append-csv! {:table-id (:id table)
+                        :file     file}))))))
 
 (deftest append-csv-test
   (mt/test-driver :h2
@@ -934,8 +934,8 @@
                 table (upload-test/create-upload-table!)]
             (is (.exists file) "File should exist before append-csv!")
             (mt/with-current-user (mt/user->id :crowberto)
-              (append-csv! {:id   (:id table)
-                            :file file}))
+              (append-csv! {:table-id (:id table)
+                            :file     file}))
             (is (not (.exists file)) "File should be deleted after append-csv!")))))))
 
 ;;; +----------------------------------------------------------------------------------------------------------------+
@@ -953,8 +953,8 @@
                          (let [file  (upload-test/csv-file-with ["name" "Luke Skywalker" "Darth Vader"] (mt/random-name))
                                table (upload-test/create-upload-table!)]
                            (mt/with-current-user (mt/user->id :crowberto)
-                                                 (replace-csv! {:id   (:id table)
-                                                                :file file}))))))
+                             (replace-csv! {:table-id (:id table)
+                                            :file     file}))))))
 
 (deftest replace-csv-test
   (mt/test-driver :h2
@@ -978,6 +978,6 @@
                table    (upload-test/create-upload-table!)]
            (is (.exists file) "File should exist before replace-csv!")
            (mt/with-current-user (mt/user->id :crowberto)
-             (replace-csv! {:id   (:id table)
-                            :file file}))
+             (replace-csv! {:table-id (:id table)
+                            :file     file}))
            (is (not (.exists file)) "File should be deleted after replace-csv!")))))))

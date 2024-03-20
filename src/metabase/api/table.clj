@@ -507,15 +507,12 @@
 
 (mu/defn ^:private update-csv!
   "This helper function exists to make testing the POST /api/table/:id/append-csv endpoint easier."
-  [{:keys [id file action]}
-   :- [:map
-       [:id ms/PositiveInt]
-       [:file (ms/InstanceOfClass java.io.File)]]]
+  [options :- [:map
+               [:table-id ms/PositiveInt]
+               [:file (ms/InstanceOfClass java.io.File)]
+               [:action [:enum ::upload/append ::upload/replace]]]]
   (try
-    ;; TODO: this is an internal method, just rename `id` to `table-id` in the callers, and we can avoid remapping here.
-    (let [model (upload/update-csv! {:table-id id
-                                     :file     file
-                                     :action   action})]
+    (let [model (upload/update-csv! options)]
       {:status 200
        :body   (:id model)})
     (catch Throwable e
@@ -523,22 +520,22 @@
                    500)
        :body   {:message (or (ex-message e)
                              (tru "There was an error uploading the file"))}})
-    (finally (io/delete-file file :silently))))
+    (finally (io/delete-file (:file options) :silently))))
 
 (api/defendpoint ^:multipart POST "/:id/append-csv"
   "Inserts the rows of an uploaded CSV file into the table identified by `:id`. The table must have been created by uploading a CSV file."
   [id :as {raw-params :params}]
   {id ms/PositiveInt}
-  (update-csv! {:id     id
-                :file   (get-in raw-params ["file" :tempfile])
-                :action ::upload/append}))
+  (update-csv! {:table-id id
+                :file     (get-in raw-params ["file" :tempfile])
+                :action   ::upload/append}))
 
 (api/defendpoint ^:multipart POST "/:id/replace-csv"
   "Replaces the contents of the table identified by `:id` with the rows of an uploaded CSV file. The table must have been created by uploading a CSV file."
   [id :as {raw-params :params}]
   {id ms/PositiveInt}
-  (update-csv! {:id      id
-                :file    (get-in raw-params ["file" :tempfile])
-                :action  ::upload/replace}))
+  (update-csv! {:table-id id
+                :file     (get-in raw-params ["file" :tempfile])
+                :action   ::upload/replace}))
 
 (api/define-routes)
