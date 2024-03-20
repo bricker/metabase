@@ -144,7 +144,7 @@ export const getRoutes = store => {
           </Route>
 
           <Route path="collection/:slug" component={CollectionLanding}>
-            <ModalRoute path="move" modal={MoveCollectionModal} />
+            <ModalRoute path="move" modal={MoveCollectionModal} noWrap />
             <ModalRoute path="archive" modal={ArchiveCollectionModal} />
             <ModalRoute path="permissions" modal={CollectionPermissionsModal} />
             {getCollectionTimelineRoutes()}
@@ -155,7 +155,11 @@ export const getRoutes = store => {
             title={t`Dashboard`}
             component={DashboardAppConnected}
           >
-            <ModalRoute path="move" modal={DashboardMoveModalConnected} />
+            <ModalRoute
+              path="move"
+              modal={DashboardMoveModalConnected}
+              noWrap
+            />
             <ModalRoute path="copy" modal={DashboardCopyModalConnected} />
             <ModalRoute path="archive" modal={ArchiveDashboardModalConnected} />
           </Route>

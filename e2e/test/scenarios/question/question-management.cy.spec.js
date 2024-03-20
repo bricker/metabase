@@ -130,7 +130,7 @@ describe(
                     cy.button("Create").click();
                   });
 
-                  entityPickerModal().findByText("Move").click();
+                  entityPickerModal().button("Move").click();
 
                   cy.get("header").findByText(NEW_COLLECTION_NAME);
                 });
@@ -489,6 +489,6 @@ function moveQuestionTo(newCollectionName) {
   cy.findByTestId("move-button").click();
   entityPickerModal().within(() => {
     cy.findByText(newCollectionName).click();
-    cy.findByText("Move").click();
+    cy.button("Move").click();
   });
 }

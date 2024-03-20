@@ -472,9 +472,8 @@ describe("scenarios > collection defaults", () => {
           cy.findByLabelText("Select all items").click();
 
           cy.icon("check").should("not.exist");
-          cy.findByTestId("toast-card")
-            .findByText(/item(s)? selected/)
-            .should("not.exist");
+          // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
+          cy.findByText(/item(s)? selected/).should("not.exist");
         });
 
         it("should clean up selection when opening another collection (metabase#16491)", () => {

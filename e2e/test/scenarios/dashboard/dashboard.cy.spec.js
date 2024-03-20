@@ -332,7 +332,7 @@ describe("scenarios > dashboard", () => {
         popover().findByText("Move").click();
         entityPickerModal().within(() => {
           cy.findByText("Our analytics").click();
-          cy.findByText("Move").click();
+          cy.button("Move").click();
         });
 
         editDashboard();

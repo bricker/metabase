@@ -454,7 +454,7 @@ function move(item) {
     // Let's move it into a nested collection
     cy.findByText("First collection").click();
     cy.findByText("Second collection").click();
-    cy.findByText("Move").click();
+    cy.button("Move").click();
   });
 
   cy.findByText(item).should("not.exist");

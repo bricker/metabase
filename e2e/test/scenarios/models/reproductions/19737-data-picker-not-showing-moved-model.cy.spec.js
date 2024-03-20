@@ -89,7 +89,7 @@ function moveModel(modelName, collectionName) {
 
   entityPickerModal().within(() => {
     cy.findByText(collectionName).click();
-    cy.findByText("Move").click();
+    cy.button("Move").click();
   });
 }
 

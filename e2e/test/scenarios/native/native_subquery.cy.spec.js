@@ -79,7 +79,7 @@ describe("scenarios > question > native subquery", () => {
         cy.findByTestId("move-button").click();
         entityPickerModal().within(() => {
           cy.findByText("Bobby Tables's Personal Collection").click();
-          cy.findByText("Move").click();
+          cy.button("Move").click();
         });
 
         openNativeEditor();

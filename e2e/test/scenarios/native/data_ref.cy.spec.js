@@ -58,7 +58,7 @@ describe("scenarios > native question > data reference sidebar", () => {
 
     entityPickerModal().within(() => {
       cy.findByText("Bobby Tables's Personal Collection").click();
-      cy.findByText("Move").click();
+      cy.button("Move").click();
     });
 
     openNativeEditor();

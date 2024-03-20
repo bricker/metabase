@@ -88,14 +88,12 @@ function BulkActions({
         </Modal>
       )}
       {!_.isEmpty(selectedItems) && selectedAction === "move" && (
-        <Modal onClose={onCloseModal}>
-          <BulkMoveModal
-            selectedItems={selectedItems}
-            onClose={onCloseModal}
-            onMove={onMove}
-            initialCollectionId={collection.id}
-          />
-        </Modal>
+        <BulkMoveModal
+          selectedItems={selectedItems}
+          onClose={onCloseModal}
+          onMove={onMove}
+          initialCollectionId={collection.id}
+        />
       )}
     </>
   );
