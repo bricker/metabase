@@ -1045,11 +1045,21 @@
                           first
                           :value))))))))
 
-(defn append-csv!
-  "Wraps [[upload/append-csv!]] setting [[upload/*sync-synchronously?*]] to `true` for test purposes."
-  [& args]
+(defn update-csv-synchronously!
+  "Wraps [[upload/upload-csv!]] setting [[upload/*sync-synchronously?*]] to `true` for test purposes."
+  [options]
   (binding [upload/*sync-synchronously?* true]
-    (apply upload/append-csv! args)))
+    (upload/update-csv! options)))
+
+(defn append-csv!
+  "Shorthand for synchronously appending to a CSV"
+  [options]
+  (update-csv-synchronously! (assoc options :action ::upload/append)))
+
+(defn replace-csv!
+  "Shorthand for synchronously replacing a CSV"
+  [options]
+  (update-csv-synchronously! (assoc options :action ::upload/replace)))
 
 (deftest create-csv-upload!-schema-test
   (mt/test-drivers (mt/normal-drivers-with-feature :uploads :schemas)
@@ -1912,6 +1922,35 @@
                   [2 1 1]
                   [3 1 1]]
                  (rows-for-table table)))
+
+          (io/delete-file file))))))
+
+(defn- one-of?
+  "Builds a predicate which checks whether a value is one of the given values. Needed as =? treats sets as literals."
+  [& args]
+  (let [s (set args)]
+    (fn [value]
+      (contains? s value))))
+
+(deftest replace-from-csv-int-and-float-test
+  (mt/test-drivers (mt/normal-drivers-with-feature :uploads)
+    (testing "Append should handle a mix of int and float-or-int values being appended to an int column"
+      (with-upload-table! [table (create-upload-table!
+                                  :col->upload-type (ordered-map/ordered-map
+                                                     :_mb_row_id ::upload/auto-incrementing-int-pk
+                                                     :number_1 ::upload/int
+                                                     :number_2 ::upload/int)
+                                  :rows [[1, 1]])]
+
+        (let [csv-rows ["number-1, number-2"
+                        "1.0, 1"
+                        "1  , 1.0"]
+              file     (csv-file-with csv-rows (mt/random-name))]
+          (is (some? (replace-csv! {:file file, :table-id (:id table)})))
+          ;; For MySQL the primary key incrementer will be reset, but for Postgres and H2 it will not.
+          (is (=? [[(one-of? 1 2) 1 1]
+                   [(one-of? 2 3) 1 1]]
+                  (rows-for-table table)))
 
           (io/delete-file file))))))
 
