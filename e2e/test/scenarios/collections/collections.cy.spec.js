@@ -35,6 +35,7 @@ describe("scenarios > collection defaults", () => {
     restore();
     cy.signInAsAdmin();
     cy.intercept("GET", "/api/**/items?pinned_state*").as("getPinnedItems");
+    cy.intercept("GET", "/api/collection/tree**").as("getTree");
   });
 
   describe("new collection modal", () => {
@@ -419,6 +420,7 @@ describe("scenarios > collection defaults", () => {
       visitCollection(SECOND_COLLECTION_ID);
 
       moveOpenedCollectionTo("Our analytics");
+      cy.wait("@getTree");
 
       navigationSidebar().within(() => {
         ensureCollectionHasNoChildren("First collection");
@@ -434,6 +436,7 @@ describe("scenarios > collection defaults", () => {
       );
 
       moveOpenedCollectionTo(NEW_COLLECTION);
+      cy.wait("@getTree");
 
       navigationSidebar().within(() => {
         ensureCollectionHasNoChildren("Second collection");
