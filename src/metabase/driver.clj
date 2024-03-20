@@ -946,7 +946,8 @@
   deleting rows, or dropping and recreating the table.
   Depending on the driver, the semantics on whether triggers are fired, AUTO_INCREMENT is reset etc, is allowed to vary.
   The application assumes that the implementation can be rolled back if inside a transaction."
-  {:added "0.47.0", :arglists '([driver db-id table-name])}
+  ;; TODO Update this once we're ready-to-merge
+  {:added "0.51.0", :arglists '([driver db-id table-name])}
   dispatch-on-initialized-driver
   :hierarchy #'hierarchy)
 
