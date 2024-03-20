@@ -2,22 +2,14 @@ import {
   useCallback,
   useEffect,
   useLayoutEffect,
-  useMemo,
   useRef,
   useState,
 } from "react";
 import { useAsync } from "react-use";
 import { t } from "ttag";
 
-// BUG: the confirmation modal is no longer working. time to add some tests so i can catch regressions like this!
-//
-// TODO:
-// - ensure the buttons have the right logic
-// - Ryan's suggestions
-
 import { useDatabaseListQuery } from "metabase/common/hooks";
 import { LeaveConfirmationModalContent } from "metabase/components/LeaveConfirmationModal";
-import LoadingAndErrorWrapper from "metabase/components/LoadingAndErrorWrapper";
 import Modal from "metabase/components/Modal";
 import { Form, FormProvider, FormSubmitButton } from "metabase/forms";
 import { color } from "metabase/lib/colors";
@@ -28,7 +20,6 @@ import { Box, Flex, Grid, Stack, Text } from "metabase/ui";
 import type {
   Config,
   DurationStrategy,
-  GetConfigByModelId,
   Model,
   ModelId,
   SafelyUpdateTargetId,
@@ -37,6 +28,8 @@ import type {
 import { isValidStrategy } from "../types";
 import { strategyValidationSchema } from "../validation";
 
+import { findWhere } from "underscore";
+import { useNoData } from "../hooks/useNoData";
 import { Panel, TabWrapper } from "./StrategyEditorForDatabases.styled";
 import { StrategyForm } from "./StrategyForm";
 import { StrategyFormLauncher } from "./StrategyFormLauncher";
@@ -48,34 +41,32 @@ export const StrategyEditorForDatabases = ({
   tabsRef?: React.RefObject<HTMLDivElement>;
   setTabsHeight?: (height: number) => void;
 }) => {
-  const {
-    data: databases = null,
-    error: errorWhenLoadingDatabases,
-    isLoading: areDatabasesLoading,
-  } = useDatabaseListQuery();
+  const databasesResult = useDatabaseListQuery();
+  const databases = databasesResult.data;
 
   const { canOnlyConfigureRootStrategy } = PLUGIN_CACHING;
+  const canOverrideRootStrategy = !canOnlyConfigureRootStrategy;
 
-  const {
-    value: configsFromAPI,
-    loading: areConfigsLoading,
-    error: errorWhenLoadingConfigs,
-  }: {
-    value?: Config[];
-    loading: boolean;
-    error?: any;
-  } = useAsync(async () => {
+  const configsResult = useAsync(async () => {
     const lists = [CacheConfigApi.list({ model: "root" })];
-    if (!canOnlyConfigureRootStrategy) {
+    if (!canOverrideRootStrategy) {
       lists.push(CacheConfigApi.list({ model: "database" }));
     }
     const [rootConfigsFromAPI, savedConfigsFromAPI] = await Promise.all(lists);
-    const configs = [
-      ...(rootConfigsFromAPI?.items ?? []),
-      ...(savedConfigsFromAPI?.items ?? []),
-    ];
+
+    console.log("savedConfigsFromAPI", savedConfigsFromAPI);
+    const rootConfig = rootConfigsFromAPI?.items?.[0] ?? {
+      model: "root",
+      model_id: 0,
+      strategy: { type: "nocache" },
+    };
+    const configs = [rootConfig];
+
+    configs.push(...(savedConfigsFromAPI?.items ?? []));
     return configs;
   }, []);
+
+  const configsFromAPI = configsResult.value;
 
   const [configs, setConfigs] = useState<Config[]>([]);
 
@@ -85,33 +76,16 @@ export const StrategyEditorForDatabases = ({
     }
   }, [configsFromAPI]);
 
-  const savedConfigs: GetConfigByModelId = useMemo(() => {
-    const map: GetConfigByModelId = new Map();
-    databases?.forEach(db => {
-      const matchingConfig = configs.find(config => config.model_id === db.id);
-      if (matchingConfig) {
-        map.set(db.id, matchingConfig);
-      }
-    });
-    const savedRootStrategy = configs.find(
-      config => config.model === "root",
-    )?.strategy;
-    map.set("root", {
-      model: "root",
-      model_id: 0,
-      strategy: savedRootStrategy ?? { type: "nocache" },
-    });
-    return map;
-  }, [configs, databases]);
-
   const [
     /** Id of the model currently being edited */
     targetId,
     setTargetId,
   ] = useState<ModelId | null>(null);
 
-  const onConfirmDiscardChanges = useRef<() => void>(() => null);
+  /** Callback that runs when the leave confirmation modal is accepted */
+  const onConfirmLeave = useRef<() => void>(() => null);
 
+  /** Update the targetId (the id of the currently edited model) but confirm if the form is unsaved */
   const safelyUpdateTargetId: SafelyUpdateTargetId = (
     newTargetId,
     isFormDirty,
@@ -125,15 +99,15 @@ export const StrategyEditorForDatabases = ({
       callback();
     };
     if (isFormDirty) {
-      setShowCancelEditWarning(true);
-      onConfirmDiscardChanges.current = proceed;
+      setShowLeaveConfirmationModal(true);
+      onConfirmLeave.current = proceed;
     } else {
       proceed();
     }
   };
 
   /** The config for the model currently being edited */
-  const targetConfig = savedConfigs.get(targetId);
+  const targetConfig = findWhere(configs, { model_id: targetId ?? undefined });
   const savedStrategy = targetConfig?.strategy;
 
   useEffect(() => {
@@ -170,13 +144,6 @@ export const StrategyEditorForDatabases = ({
     [configs],
   );
 
-  const setRootStrategy = async (newStrategy: Strat) =>
-    await setStrategy("root", 0, newStrategy);
-  const setDBStrategy = async (databaseId: number, newStrategy: Strat | null) =>
-    await setStrategy("database", databaseId, newStrategy);
-
-  const [showLoadingSpinner, setShowLoadingSpinner] = useState(false);
-
   // TODO: If this doesn't need to depend on areDatabasesLoading etc then move it up
   useLayoutEffect(() => {
     const handleResize = () => {
@@ -194,54 +161,49 @@ export const StrategyEditorForDatabases = ({
     return () => {
       window.removeEventListener("resize", handleResize);
     };
-  }, [tabsRef, setTabsHeight, areDatabasesLoading, areConfigsLoading]);
+  }, [
+    tabsRef,
+    setTabsHeight /* TODO: remove if not needed areDatabasesLoading, areConfigsLoading*/,
+  ]);
 
-  const [showCancelEditWarning, setShowCancelEditWarning] = useState(false);
+  const [showLeaveConfirmationModal, setShowLeaveConfirmationModal] =
+    useState(false);
   const [isStrategyFormDirty, setIsStrategyFormDirty] = useState(false);
-
-  useEffect(
-    /**
-     * @see https://metaboat.slack.com/archives/C02H619CJ8K/p1709558533499399
-     */
-    function delayLoadingSpinner() {
-      setTimeout(() => {
-        setShowLoadingSpinner(true);
-      }, 300);
-    },
-    [],
-  );
 
   const showStrategyForm = targetId !== null;
 
-  const saveStrategy = async (newStrategyValues: Partial<Strat> | null) => {
-    const newStrategy = newStrategyValues
-      ? {
-          type: savedStrategy?.type,
-          ...newStrategyValues,
-        }
-      : null;
-    // TODO: Should the backend even accept/require a unit?
-    if (newStrategy?.type === "duration") {
-      (newStrategy as DurationStrategy).unit = "hours";
-    }
-    if (newStrategy !== null && !isValidStrategy(newStrategy)) {
-      console.error(`Invalid strategy: ${JSON.stringify(newStrategy)}`);
-      return;
-    }
-    if (targetId === "root") {
-      if (newStrategy === null) {
-        console.error("Cannot delete root strategy");
-      } else {
-        await setRootStrategy(newStrategy);
+  const saveStrategy = useCallback(
+    async (newStrategyValues: Partial<Strat> | null) => {
+      const newStrategy = newStrategyValues
+        ? {
+            type: savedStrategy?.type,
+            ...newStrategyValues,
+          }
+        : null;
+      // TODO: Should the backend even accept/require a unit?
+      if (newStrategy?.type === "duration") {
+        (newStrategy as DurationStrategy).unit = "hours";
       }
-    } else if (targetId !== null) {
-      await setDBStrategy(targetId, newStrategy);
-    } else {
-      console.error("No target specified");
-    }
-  };
+      if (newStrategy !== null && !isValidStrategy(newStrategy)) {
+        console.error(`Invalid strategy: ${JSON.stringify(newStrategy)}`);
+        return;
+      }
+      if (targetId === "root") {
+        if (newStrategy === null) {
+          console.error("Cannot delete root strategy");
+        } else {
+          await setStrategy("root", 0, newStrategy);
+        }
+      } else if (targetId !== null) {
+        await setStrategy("database", targetId, newStrategy);
+      } else {
+        console.error("No target specified");
+      }
+    },
+    [savedStrategy, targetId],
+  );
 
-  const clearDBOverrides = useCallback(async () => {
+  const resetAllToDefault = useCallback(async () => {
     const originalConfigs = [...configs];
     setConfigs(configs => configs.filter(({ model }) => model !== "database"));
 
@@ -255,33 +217,13 @@ export const StrategyEditorForDatabases = ({
       return;
     }
 
-    const onError = async () => {
-      setConfigs(originalConfigs);
-    };
-
     await CacheConfigApi.delete(
       { model_id: ids, model: "database" },
       { hasBody: true },
-    ).catch(onError);
+    ).catch(async () => {
+      setConfigs(originalConfigs);
+    });
   }, [configs, setConfigs]);
-
-  if (errorWhenLoadingConfigs || areConfigsLoading) {
-    return showLoadingSpinner ? (
-      <LoadingAndErrorWrapper
-        error={errorWhenLoadingConfigs}
-        loading={areConfigsLoading}
-      />
-    ) : null;
-  }
-
-  if (errorWhenLoadingDatabases || areDatabasesLoading) {
-    return showLoadingSpinner ? (
-      <LoadingAndErrorWrapper
-        error={errorWhenLoadingDatabases}
-        loading={areDatabasesLoading}
-      />
-    ) : null;
-  }
 
   const handleFormSubmit = async (values: Partial<Strat>) => {
     await saveStrategy(
@@ -291,15 +233,21 @@ export const StrategyEditorForDatabases = ({
     );
   };
 
+  const noData = useNoData(
+    databasesResult.error || configsResult.error,
+    databasesResult.isLoading || configsResult.loading,
+  );
+  if (noData) return noData;
+
   return (
     <TabWrapper role="region" aria-label="Data caching settings">
       <Stack spacing="xl" lh="1.5rem" maw="32rem" mb="1.5rem">
         <aside>{PLUGIN_CACHING.explanation}</aside>
       </Stack>
-      <Modal isOpen={showCancelEditWarning}>
+      <Modal isOpen={showLeaveConfirmationModal}>
         <LeaveConfirmationModalContent
-          onAction={() => onConfirmDiscardChanges.current()}
-          onClose={() => setShowCancelEditWarning(false)}
+          onAction={() => onConfirmLeave.current()}
+          onClose={() => setShowLeaveConfirmationModal(false)}
         />
       </Modal>
       <Grid
@@ -321,10 +269,10 @@ export const StrategyEditorForDatabases = ({
               <StrategyFormLauncher
                 forId="root"
                 title={t`Default policy`}
-                savedConfigs={savedConfigs}
+                configs={configs}
                 targetId={targetId}
                 safelyUpdateTargetId={safelyUpdateTargetId}
-                isStrategyFormDirty={isStrategyFormDirty}
+                isFormDirty={isStrategyFormDirty}
               />
             </Box>
             <Stack p="lg" spacing="md">
@@ -332,14 +280,14 @@ export const StrategyEditorForDatabases = ({
                 <StrategyFormLauncher
                   forId={db.id}
                   title={db.name}
-                  key={db.id.toString()}
-                  savedConfigs={savedConfigs}
+                  key={`database_${db.id}`}
+                  configs={configs}
                   targetId={targetId}
                   safelyUpdateTargetId={safelyUpdateTargetId}
-                  isStrategyFormDirty={isStrategyFormDirty}
+                  isFormDirty={isStrategyFormDirty}
                 />
               ))}
-              <FormProvider initialValues={{}} onSubmit={clearDBOverrides}>
+              <FormProvider initialValues={{}} onSubmit={resetAllToDefault}>
                 <Form>
                   <Flex justify="flex-end">
                     <FormSubmitButton

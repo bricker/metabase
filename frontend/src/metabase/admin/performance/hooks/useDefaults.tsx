@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-import type Database from "metabase-lib/metadata/Database";
+import type Database from "metabase-lib/v1/metadata/Database";
 
 import type {
   Config,

@@ -4,32 +4,31 @@ import { t } from "ttag";
 import { color } from "metabase/lib/colors";
 import { FixedSizeIcon, Flex, Title, Tooltip } from "metabase/ui";
 
-import type {
-  GetConfigByModelId,
-  ModelId,
-  SafelyUpdateTargetId,
-} from "../types";
+import type { Config, ModelId, SafelyUpdateTargetId } from "../types";
 import { getShortStrategyLabel } from "../types";
 
 import { PolicyToken } from "./StrategyEditorForDatabases.styled";
+import { findWhere } from "underscore";
 
 export const StrategyFormLauncher = ({
   forId,
   targetId,
   title,
   safelyUpdateTargetId,
-  savedConfigs,
-  isStrategyFormDirty,
+  configs,
+  isFormDirty,
 }: {
   forId: ModelId;
   targetId: ModelId | null;
   title: string;
   safelyUpdateTargetId: SafelyUpdateTargetId;
-  savedConfigs: GetConfigByModelId;
-  isStrategyFormDirty: boolean;
+  configs: Config[];
+  isFormDirty: boolean;
 }) => {
-  const config = savedConfigs.get(forId);
-  const rootStrategy = savedConfigs.get("root")?.strategy;
+  const config = findWhere(configs, { model_id: forId });
+  const rootConfig = findWhere(configs, { model: "root" });
+
+  const rootStrategy = rootConfig?.strategy;
   const savedStrategy = config?.strategy;
 
   const inheritsRootStrategy = savedStrategy === undefined;
@@ -71,7 +70,7 @@ export const StrategyFormLauncher = ({
         <PolicyToken
           onClick={() => {
             if (targetId !== forId) {
-              safelyUpdateTargetId(forId, isStrategyFormDirty);
+              safelyUpdateTargetId(forId, isFormDirty);
             }
           }}
           // The hover state is in a React state variable so that it can determine the variant prop

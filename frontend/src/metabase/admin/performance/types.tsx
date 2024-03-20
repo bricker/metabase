@@ -72,7 +72,7 @@ export const isValidStrategyName = (
   return Object.keys(Strategies).includes(strategy);
 };
 
-export type GetConfigByModelId = Map<ModelId | null, Config>;
+export type ConfigMap = Map<ModelId | null, Config>;
 
 export type Model =
   | "root"
