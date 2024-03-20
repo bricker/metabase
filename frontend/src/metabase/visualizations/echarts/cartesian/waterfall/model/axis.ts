@@ -1,5 +1,4 @@
 import { t } from "ttag";
-import type { Dayjs } from "dayjs";
 import dayjs from "dayjs";
 import type { RawSeries, RowValue } from "metabase-types/api";
 import type {
@@ -8,11 +7,11 @@ import type {
 } from "metabase/visualizations/types";
 import type {
   ChartDataset,
+  DateRange,
   DimensionModel,
   Extent,
   TimeSeriesXAxisModel,
   WaterfallXAxisModel,
-  XAxisModel,
 } from "metabase/visualizations/echarts/cartesian/model/types";
 
 import { getXAxisModel } from "../../model/axis";
@@ -48,26 +47,14 @@ export const getWaterfallXAxisModel = (
   let extent: Extent | undefined = isNumericAxis(xAxisModel)
     ? xAxisModel.extent
     : undefined;
-
-  let tickRenderPredicate: XAxisModel["tickRenderPredicate"];
+  let range: DateRange | undefined = isTimeSeriesAxis(xAxisModel)
+    ? xAxisModel.range
+    : undefined;
 
   if (hasTotal) {
     if (isTimeSeriesAxis(xAxisModel)) {
-      const timeSeriesTotalXValue = getTotalTimeSeriesXValue(xAxisModel);
-
-      totalXValue = timeSeriesTotalXValue;
-      tickRenderPredicate = (tickValue: Dayjs) => {
-        if (
-          tickValue.isSame(
-            tryGetDate(timeSeriesTotalXValue),
-            xAxisModel.effectiveTickUnit,
-          )
-        ) {
-          return true;
-        }
-
-        return xAxisModel.tickRenderPredicate?.(tickValue) ?? true;
-      };
+      totalXValue = getTotalTimeSeriesXValue(xAxisModel);
+      range = [xAxisModel.range[0], dayjs(totalXValue)];
     } else if (isNumericAxis(xAxisModel)) {
       totalXValue = xAxisModel.extent[1] + xAxisModel.interval;
       extent = [xAxisModel.extent[0], totalXValue];
@@ -97,13 +84,20 @@ export const getWaterfallXAxisModel = (
     ...xAxisModel,
     formatter: waterfallFormatter,
     totalXValue,
-    tickRenderPredicate,
   };
 
   if (extent && isNumericAxis(waterfallAxisModel)) {
     return {
       ...waterfallAxisModel,
       extent,
+    };
+  }
+
+  if (range && isTimeSeriesAxis(waterfallAxisModel)) {
+    return {
+      ...waterfallAxisModel,
+      range,
+      intervalsCount: waterfallAxisModel.intervalsCount + 1,
     };
   }
 

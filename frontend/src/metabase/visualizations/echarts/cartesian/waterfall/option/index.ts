@@ -201,6 +201,7 @@ export const buildEChartsWaterfallSeries = (
 
 export const getWaterfallChartOption = (
   chartModel: BaseCartesianChartModel,
+  chartWidth: number,
   chartMeasurements: ChartMeasurements,
   timelineEventsModel: TimelineEventsModel | null,
   selectedTimelineEventsIds: TimelineEventId[],
@@ -241,6 +242,7 @@ export const getWaterfallChartOption = (
     series: seriesOption as SeriesOption,
     ...buildAxes(
       chartModel,
+      chartWidth,
       chartMeasurements,
       settings,
       hasTimelineEvents,
