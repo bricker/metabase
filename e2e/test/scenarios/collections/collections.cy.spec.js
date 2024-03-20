@@ -517,7 +517,7 @@ describe("scenarios > collection defaults", () => {
 
           entityPickerModal().within(() => {
             cy.findByText("First collection").click();
-            cy.findByText("Move").click();
+            cy.button("Move").click();
           });
 
           // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage

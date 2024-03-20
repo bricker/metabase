@@ -53,6 +53,7 @@ const DASHBOARD = createMockDashboard({
 const DASHBOARD_AT_ROOT = createMockDashboard({
   id: getNextId(),
   name: "Dashboard at root",
+  collection_id: null,
   model: "dashboard",
 });
 
@@ -794,6 +795,7 @@ describe("AddToDashSelectDashModal", () => {
               id: getNextId(),
               name: "Dashboard in public collection",
               // `null` means it's in the root collection
+              collection_id: null,
               model: "dashboard",
             });
 
