@@ -822,7 +822,7 @@
    :- [:map
        [:table-id ms/PositiveInt]
        [:file (ms/InstanceOfClass File)]
-       [:action keyword?]]]
+       [:action [:enum ::append ::replace]]]]
   (let [table    (api/check-404 (t2/select-one :model/Table :id table-id))
         database (table/database table)
         replace? (= ::replace action)]
