@@ -165,6 +165,7 @@ export type BaseCartesianChartModel = {
   seriesModels: SeriesModel[];
   dataset: ChartDataset;
   transformedDataset: ChartDataset;
+  yAxisScaleTransforms: NumericAxisScaleTransforms;
 
   leftAxisModel: YAxisModel | null;
   rightAxisModel: YAxisModel | null;

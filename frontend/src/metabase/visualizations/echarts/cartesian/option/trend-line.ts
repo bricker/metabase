@@ -17,7 +17,7 @@ import {
   X_AXIS_DATA_KEY,
 } from "metabase/visualizations/echarts/cartesian/constants/dataset";
 
-import { applySquareRootScaling, replaceValues } from "../model/dataset";
+import { replaceValues } from "../model/dataset";
 import type { CartesianChartModel } from "../model/types";
 import { CHART_STYLE } from "../constants/style";
 import { getSeriesYAxisIndex } from "./utils";
@@ -100,30 +100,6 @@ function normalizeTrendDatasets(
 }
 
 /**
- * Applies a square root function to all values in the datasets for all trend lines,
- * for use with the power y-axis scale.
- *
- * @param {TrendDataset[]} trendDatasets - Datasets for the trend lines for all series in the chart.
- * @param {ComputedVisualizationSettings} settings - Locally computed visualization settings for the chart
- * @returns {TrendDataset[]} Square-rooted datasets if the `graph.y_axis.scale` setting is `pow`,
- * otherwise the unchanged input datasets
- */
-function squareRootScaleDatasets(
-  trendDatasets: TrendDataset[],
-  settings: ComputedVisualizationSettings,
-): TrendDataset[] {
-  if (settings["graph.y_axis.scale"] !== "pow") {
-    return trendDatasets;
-  }
-
-  return trendDatasets.map(trendDataset =>
-    replaceValues(trendDataset, (dataKey, value) =>
-      dataKey === TREND_LINE_DATA_KEY ? applySquareRootScaling(value) : value,
-    ),
-  ) as TrendDataset[];
-}
-
-/**
  * Computes the dataset and series option objects needed by ECharts to render trend lines.
  * Each series in the chart model will have one corresponding dataset and option, in the same
  * order as the `chartModel.seriesModels` array.
@@ -195,11 +171,17 @@ export function getTrendLineOptionsAndDatasets(
     chartModel,
     settings,
   );
-  const scaledDatasets = squareRootScaleDatasets(normalizedDatasets, settings);
+  const transformedDatasets = normalizedDatasets.map(dataset =>
+    replaceValues(dataset, (dataKey, value) =>
+      dataKey === TREND_LINE_DATA_KEY
+        ? chartModel.yAxisScaleTransforms.toEChartsAxisValue(value)
+        : value,
+    ),
+  ) as TrendDataset[];
 
   return {
     options,
-    datasets: scaledDatasets.map(dataset => ({
+    datasets: transformedDatasets.map(dataset => ({
       dimensions: [X_AXIS_DATA_KEY, TREND_LINE_DATA_KEY],
       source: dataset,
     })) as EChartsOption["dataset"][],

@@ -1,7 +1,6 @@
 import type { RegisteredSeriesOption } from "echarts";
-import type { RowValue } from "metabase-types/api";
 
-import type { DataKey } from "../model/types";
+import type { Datum } from "../model/types";
 import type { TREND_LINE_DATA_KEY } from "../constants/dataset";
 
 export type EChartsSeriesOption =
@@ -9,7 +8,6 @@ export type EChartsSeriesOption =
   | RegisteredSeriesOption["bar"]
   | RegisteredSeriesOption["scatter"];
 
-export type TrendDataset = {
-  [key: DataKey]: RowValue;
+export type TrendDataset = (Datum & {
   [TREND_LINE_DATA_KEY]: number;
-}[];
+})[];
