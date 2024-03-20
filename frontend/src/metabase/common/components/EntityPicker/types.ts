@@ -44,7 +44,7 @@ export type QuestionPickerItem = Pick<
   SearchResult,
   "name" | "description" | "can_write" | "model"
 > & {
-  id: CollectionId | CardId;
+  id: CardId;
   collection_id?: CollectionId;
   location?: string | null;
   effective_location?: string | null;
