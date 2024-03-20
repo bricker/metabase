@@ -347,6 +347,7 @@ export const StrategyEditorForDatabases = ({
                         <Text
                           fw="normal"
                           color="error"
+                          // TODO: Add confirmation modal?
                         >{t`Reset all to default`}</Text>
                       }
                       variant="subtle"
