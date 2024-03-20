@@ -813,6 +813,10 @@
 ;;; |  public interface for updating an uploaded table
 ;;; +--------------------------------------------------
 
+(def update-action-schema
+  "The :action values supported by [[update-csv!]]"
+  [:enum ::append ::replace])
+
 (mu/defn update-csv!
   "Main entry point for updating an uploaded table with a CSV file.
   This will create an auto-incrementing primary key (auto-pk) column in the table for drivers that supported uploads
@@ -821,7 +825,7 @@
    :- [:map
        [:table-id ms/PositiveInt]
        [:file (ms/InstanceOfClass File)]
-       [:action [:enum ::append ::replace]]]]
+       [:action update-action-schema]]]
   (let [table    (api/check-404 (t2/select-one :model/Table :id table-id))
         database (table/database table)
         replace? (= ::replace action)]

@@ -510,7 +510,7 @@
   [options :- [:map
                [:table-id ms/PositiveInt]
                [:file (ms/InstanceOfClass java.io.File)]
-               [:action [:enum ::upload/append ::upload/replace]]]]
+               [:action upload/update-action-schema]]]
   (try
     (let [model (upload/update-csv! options)]
       {:status 200

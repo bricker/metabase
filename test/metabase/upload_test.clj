@@ -1925,13 +1925,6 @@
 
           (io/delete-file file))))))
 
-(defn- one-of?
-  "Builds a predicate which checks whether a value is one of the given values. Needed as =? treats sets as literals."
-  [& args]
-  (let [s (set args)]
-    (fn [value]
-      (contains? s value))))
-
 (deftest replace-from-csv-int-and-float-test
   (mt/test-drivers (mt/normal-drivers-with-feature :uploads)
     (testing "Append should handle a mix of int and float-or-int values being appended to an int column"
@@ -1948,9 +1941,10 @@
               file     (csv-file-with csv-rows (mt/random-name))]
           (is (some? (replace-csv! {:file file, :table-id (:id table)})))
           ;; For MySQL the primary key incrementer will be reset, but for Postgres and H2 it will not.
-          (is (=? [[(one-of? 1 2) 1 1]
-                   [(one-of? 2 3) 1 1]]
-                  (rows-for-table table)))
+          (let [pk-offset (case driver/*driver* :mysql -1 0)]
+            (is (= [[(+ pk-offset 2) 1 1]
+                    [(+ pk-offset 3) 1 1]]
+                   (rows-for-table table))))
 
           (io/delete-file file))))))
 
