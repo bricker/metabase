@@ -410,9 +410,7 @@ export function createEntity(def) {
 
   const getEntityList = createSelector(
     [getEntityQueryId, getEntityLists],
-    (entityQueryId, lists) => {
-      return lists[entityQueryId];
-    },
+    (entityQueryId, lists) => lists[entityQueryId],
   );
 
   const getEntityIds = createSelector(

@@ -2,7 +2,7 @@ import styled from "@emotion/styled";
 
 import Card from "metabase/components/Card";
 import Link from "metabase/core/components/Link";
-import { alpha, color } from "metabase/lib/colors";
+import { alpha, color, lighten } from "metabase/lib/colors";
 import { space } from "metabase/styled-components/theme";
 import type { BoxProps } from "metabase/ui";
 import { Box, Icon } from "metabase/ui";
@@ -71,9 +71,10 @@ export const UndoButton = styled(Link)`
 
 export const DismissIcon = styled(Icon)`
   margin-left: ${space(2)};
+  color: ${color("bg-dark")};
   cursor: pointer;
 
   :hover {
-    opacity: 0.7;
+    color: ${lighten(color("bg-dark"), 0.3)};
   }
 `;
