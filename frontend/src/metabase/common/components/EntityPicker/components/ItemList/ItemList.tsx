@@ -2,9 +2,9 @@ import type React from "react";
 import { useMemo } from "react";
 import { t } from "ttag";
 
-import NoResults from "assets/img/no_results.svg";
 import EmptyState from "metabase/components/EmptyState";
 import { VirtualizedList } from "metabase/components/VirtualizedList";
+import { NoArtifactError } from "metabase/components/errors/NoArtifactError";
 import { LoadingAndErrorWrapper } from "metabase/public/containers/PublicAction/PublicAction.styled";
 import { Box, NavLink, Center, Icon, Flex } from "metabase/ui";
 
@@ -60,11 +60,7 @@ export const ItemList = <TItem extends TypeWithModel>({
     return (
       <Flex justify="center" align="center" direction="column" h="100%">
         <EmptyState
-          illustrationElement={
-            <Box aria-label={t`empty`}>
-              <img src={NoResults} />
-            </Box>
-          }
+          illustrationElement={<NoArtifactError aria-label={t`empty`} />}
         />
       </Flex>
     );
