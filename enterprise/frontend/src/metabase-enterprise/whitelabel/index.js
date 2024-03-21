@@ -32,6 +32,7 @@ import { HelpLinkSettings } from "./components/HelpLinkSettings";
 import { IllustrationDescription } from "./components/IllustrationDescription";
 import { IllustrationWidget } from "./components/IllustrationWidget";
 import { ImageUpload } from "./components/ImageUpload";
+import { ImageUploadInfoDot } from "./components/ImageUploadInfoDot";
 import { LandingPageWidget } from "./components/LandingPageWidget";
 import LogoIcon from "./components/LogoIcon";
 import { MetabotToggleWidget } from "./components/MetabotToggleWidget";
@@ -225,6 +226,7 @@ if (hasPremiumFeature("whitelabel")) {
               customIllustrationSetting: "login-page-illustration-custom",
               errorMessageContainerId:
                 "login-page-illustration-error-container",
+              imageUploadInfoDot: <ImageUploadInfoDot type="login-page" />,
             },
           },
           {
@@ -245,6 +247,7 @@ if (hasPremiumFeature("whitelabel")) {
               customIllustrationSetting: "landing-page-illustration-custom",
               errorMessageContainerId:
                 "landing-page-illustration-error-container",
+              imageUploadInfoDot: <ImageUploadInfoDot type="landing-page" />,
             },
           },
           {
@@ -266,6 +269,9 @@ if (hasPremiumFeature("whitelabel")) {
                 "no-question-results-illustration-custom",
               errorMessageContainerId:
                 "no-question-results-illustration-error-container",
+              imageUploadInfoDot: (
+                <ImageUploadInfoDot type="no-question-results" />
+              ),
             },
           },
           {
@@ -287,6 +293,9 @@ if (hasPremiumFeature("whitelabel")) {
                 "no-search-results-illustration-custom",
               errorMessageContainerId:
                 "no-search-results-illustration-error-container",
+              imageUploadInfoDot: (
+                <ImageUploadInfoDot type="no-search-results" />
+              ),
             },
           },
         ],
