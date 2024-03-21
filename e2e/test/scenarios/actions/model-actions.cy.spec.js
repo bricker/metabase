@@ -238,6 +238,7 @@ describe(
       // Enabling actions for sample database as well
       // to test database picker behavior in the action editor
       setActionsEnabledForDB(SAMPLE_DB_ID);
+      setTokenFeatures("all");
 
       cy.updatePermissionsGraph({
         [USER_GROUPS.ALL_USERS_GROUP]: {
@@ -249,7 +250,6 @@ describe(
         },
         [USER_GROUPS.DATA_GROUP]: {
           [WRITABLE_DB_ID]: {
-            data: { schemas: "all", native: "write" },
             "view-data": "unrestricted",
             "create-queries": "query-builder-and-native",
           },
@@ -814,9 +814,14 @@ describe(
         {
           [USER_GROUPS.ALL_USERS_GROUP]: {
             [WRITABLE_DB_ID]: {
-              data: { schemas: "all", native: "write" },
               "view-data": "unrestricted",
               "create-queries": "query-builder-and-native",
+            },
+          },
+          [USER_GROUPS.COLLECTION_GROUP]: {
+            [WRITABLE_DB_ID]: {
+              "view-data": "blocked",
+              "create-queries": "no",
             },
           },
         },

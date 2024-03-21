@@ -11,7 +11,7 @@ const mongoName = "QA Mongo";
 const postgresName = "QA Postgres12";
 const additionalPG = "New Database";
 
-const { DATA_GROUP } = USER_GROUPS;
+const { DATA_GROUP, ALL_USERS_GROUP } = USER_GROUPS;
 
 describe(
   "scenarios > question > native > database source",
@@ -183,7 +183,12 @@ describe(
       cy.updatePermissionsGraph({
         [DATA_GROUP]: {
           [SAMPLE_DB_ID]: {
-            data: { schemas: "none", native: "none" },
+            "view-data": "blocked",
+            "create-queries": "no",
+          },
+        },
+        [ALL_USERS_GROUP]: {
+          [SAMPLE_DB_ID]: {
             "view-data": "blocked",
             "create-queries": "no",
           },

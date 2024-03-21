@@ -1,3 +1,4 @@
+import { SAMPLE_DB_ID, USER_GROUPS } from "e2e/support/cypress_data";
 import { SAMPLE_DATABASE } from "e2e/support/cypress_sample_database";
 import {
   editDashboard,
@@ -272,6 +273,13 @@ describeEE("scenarios > dashboard > filters", () => {
           cy.editDashboardCard(card, getParameterMapping(card));
           cy.signOut();
           cy.signInAsSandboxedUser();
+          cy.updatePermissionsGraph({
+            [USER_GROUPS.COLLECTION_GROUP]: {
+              [SAMPLE_DB_ID]: {
+                "view-data": "blocked",
+              },
+            },
+          });
           visitDashboard(card.dashboard_id);
         });
       },
