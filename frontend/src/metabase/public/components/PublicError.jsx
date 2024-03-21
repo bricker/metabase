@@ -15,7 +15,7 @@ const mapStateToProps = (state, props) => ({
 const PublicError = ({ message = t`An error occurred` }) => (
   <EmbedFrame className={CS.spread}>
     <div className="flex layout-centered flex-full flex-column">
-      <NoRowsError />
+      <NoRowsError mb="1rem" />
       <div className="mt1 h4 sm-h3 md-h2 text-bold">{message}</div>
     </div>
   </EmbedFrame>
