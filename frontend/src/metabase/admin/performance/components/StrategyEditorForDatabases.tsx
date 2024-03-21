@@ -1,3 +1,4 @@
+import type { Dispatch, SetStateAction } from "react";
 import {
   useCallback,
   useEffect,
@@ -7,6 +8,7 @@ import {
 } from "react";
 import { useAsync } from "react-use";
 import { t } from "ttag";
+import { findWhere } from "underscore";
 
 import { useDatabaseListQuery } from "metabase/common/hooks";
 import { LeaveConfirmationModalContent } from "metabase/components/LeaveConfirmationModal";
@@ -17,6 +19,7 @@ import { PLUGIN_CACHING } from "metabase/plugins";
 import { CacheConfigApi } from "metabase/services";
 import { Box, Flex, Grid, Stack, Text } from "metabase/ui";
 
+import { useNoData } from "../hooks/useNoData";
 import type {
   Config,
   DurationStrategy,
@@ -28,8 +31,6 @@ import type {
 import { isValidStrategy } from "../types";
 import { strategyValidationSchema } from "../validation";
 
-import { findWhere } from "underscore";
-import { useNoData } from "../hooks/useNoData";
 import { Panel, TabWrapper } from "./StrategyEditorForDatabases.styled";
 import { StrategyForm } from "./StrategyForm";
 import { StrategyFormLauncher } from "./StrategyFormLauncher";
@@ -54,7 +55,6 @@ export const StrategyEditorForDatabases = ({
     }
     const [rootConfigsFromAPI, savedConfigsFromAPI] = await Promise.all(lists);
 
-    console.log("savedConfigsFromAPI", savedConfigsFromAPI);
     const rootConfig = rootConfigsFromAPI?.items?.[0] ?? {
       model: "root",
       model_id: 0,
@@ -200,30 +200,8 @@ export const StrategyEditorForDatabases = ({
         console.error("No target specified");
       }
     },
-    [savedStrategy, targetId],
+    [savedStrategy, targetId, setStrategy],
   );
-
-  const resetAllToDefault = useCallback(async () => {
-    const originalConfigs = [...configs];
-    setConfigs(configs => configs.filter(({ model }) => model !== "database"));
-
-    const ids = configs.reduce<ModelId[]>(
-      (acc, config) =>
-        config.model === "database" ? [...acc, config.model_id] : acc,
-      [],
-    );
-
-    if (ids.length === 0) {
-      return;
-    }
-
-    await CacheConfigApi.delete(
-      { model_id: ids, model: "database" },
-      { hasBody: true },
-    ).catch(async () => {
-      setConfigs(originalConfigs);
-    });
-  }, [configs, setConfigs]);
 
   const handleFormSubmit = async (values: Partial<Strat>) => {
     await saveStrategy(
@@ -237,7 +215,9 @@ export const StrategyEditorForDatabases = ({
     databasesResult.error || configsResult.error,
     databasesResult.isLoading || configsResult.loading,
   );
-  if (noData) return noData;
+  if (noData) {
+    return noData;
+  }
 
   return (
     <TabWrapper role="region" aria-label="Data caching settings">
@@ -287,22 +267,10 @@ export const StrategyEditorForDatabases = ({
                   isFormDirty={isStrategyFormDirty}
                 />
               ))}
-              <FormProvider initialValues={{}} onSubmit={resetAllToDefault}>
-                <Form>
-                  <Flex justify="flex-end">
-                    <FormSubmitButton
-                      label={
-                        <Text
-                          fw="normal"
-                          color="error"
-                          // TODO: Add confirmation modal?
-                        >{t`Reset all to default`}</Text>
-                      }
-                      variant="subtle"
-                    />
-                  </Flex>
-                </Form>
-              </FormProvider>
+              <ResetAllToDefaultButton
+                configs={configs}
+                setConfigs={setConfigs}
+              />
             </Stack>
           </Panel>
         )}
@@ -324,5 +292,56 @@ export const StrategyEditorForDatabases = ({
         </Panel>
       </Grid>
     </TabWrapper>
+  );
+};
+
+const ResetAllToDefaultButton = ({
+  configs,
+  setConfigs,
+}: {
+  configs: Config[];
+  setConfigs: Dispatch<SetStateAction<Config[]>>;
+}) => {
+  const resetAllToDefault = useCallback(async () => {
+    const originalConfigs = [...configs];
+    setConfigs((configs: Config[]) =>
+      configs.filter(({ model }) => model !== "database"),
+    );
+
+    const ids = configs.reduce<ModelId[]>(
+      (acc, config) =>
+        config.model === "database" ? [...acc, config.model_id] : acc,
+      [],
+    );
+
+    if (ids.length === 0) {
+      return;
+    }
+
+    await CacheConfigApi.delete(
+      { model_id: ids, model: "database" },
+      { hasBody: true },
+    ).catch(async () => {
+      setConfigs(originalConfigs);
+    });
+  }, [configs, setConfigs]);
+
+  return (
+    <FormProvider initialValues={{}} onSubmit={resetAllToDefault}>
+      <Form>
+        <Flex justify="flex-end">
+          <FormSubmitButton
+            label={
+              <Text
+                fw="normal"
+                color="error"
+                // TODO: Add confirmation modal?
+              >{t`Reset all to default`}</Text>
+            }
+            variant="subtle"
+          />
+        </Flex>
+      </Form>
+    </FormProvider>
   );
 };
